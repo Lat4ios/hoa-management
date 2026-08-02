@@ -51,14 +51,13 @@ app.use('/rates',               rateRoutes);
 app.use('/reports',             reportRoutes);
 app.use('/generate-reports',    generateReportRoutes);
 
-// Start server with database connection
 const startServer = async () => {
+    console.log('🔄 Starting server...');
     const connected = await connectDB();
     if (connected) {
         await createTables();
     } else {
         console.log('⚠️ Server starting without database connection');
-        console.log('⚠️ Please check your database settings');
     }
     
     app.listen(PORT, '0.0.0.0', () => {
