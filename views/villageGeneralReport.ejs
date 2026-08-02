@@ -1,0 +1,263 @@
+<%
+    const fmtDate = dateStr => {
+        if (!dateStr) return '—';
+        return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+%>
+
+<div class="rpt-actions no-print">
+    <a href="/reports" class="rpt-back"><i class="fa-solid fa-arrow-left"></i> Back to Reports</a>
+    <div style="display:flex; gap:10px;">
+        <button onclick="exportCSV()" class="rpt-print-btn" style="background:#4a7c59;">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+        </button>
+        <button onclick="window.print()" class="rpt-print-btn">
+            <i class="fa-solid fa-print"></i> Print / Save as PDF
+        </button>
+    </div>
+</div>
+
+<div class="rpt-filter-bar no-print">
+    <form id="dateFilterForm" method="GET" action="/reports/village-general">
+        <label>Report Period:</label>
+        <input type="date" id="filterFrom" name="from" value="<%= fromDate %>" class="rpt-date-input">
+        <span>to</span>
+        <input type="date" id="filterTo" name="to" value="<%= toDate %>" class="rpt-date-input">
+        <button type="submit" class="rpt-apply-btn">
+            <i class="fa-solid fa-rotate-right"></i> Apply
+        </button>
+        <span id="dateError" style="color:#c00;font-size:12px;display:none;"></span>
+    </form>
+</div>
+<script>
+(function () {
+    const today = new Date().toISOString().slice(0, 10);
+    const fromEl = document.getElementById('filterFrom');
+    const toEl   = document.getElementById('filterTo');
+    const errEl  = document.getElementById('dateError');
+
+    fromEl.max = today;
+    toEl.max   = today;
+
+    function showErr(msg) {
+        errEl.textContent = msg;
+        errEl.style.display = 'inline';
+    }
+    function clearErr() {
+        errEl.style.display = 'none';
+    }
+
+    fromEl.addEventListener('change', function () {
+        toEl.min = this.value;
+        clearErr();
+    });
+
+    toEl.addEventListener('change', function () {
+        fromEl.max = this.value < today ? this.value : today;
+        clearErr();
+    });
+
+    document.getElementById('dateFilterForm').addEventListener('submit', function (e) {
+        const from = fromEl.value;
+        const to   = toEl.value;
+        if (!from || !to) { e.preventDefault(); showErr('Both dates are required.'); return; }
+        if (from > today || to > today) { e.preventDefault(); showErr('Dates cannot be in the future.'); return; }
+        if (from > to) { e.preventDefault(); showErr('"From" date must be on or before the "To" date.'); return; }
+        clearErr();
+    });
+})();
+</script>
+
+<div class="rpt-page">
+
+    <h1 class="rpt-main-title">GENERAL VILLAGE REPORT</h1>
+
+    <div class="rpt-meta">
+        <div class="rpt-meta-row">
+            <span class="rpt-meta-label">REPORT NAME:</span>
+            <span>MARCELO GREEN VILLAGE PHASE 5 GENERAL VILLAGE REPORT</span>
+        </div>
+        <div class="rpt-meta-row">
+            <span class="rpt-meta-label">REPORT PERIOD:</span>
+            <span><%= fromDateDisplay %> — <%= toDateDisplay %></span>
+        </div>
+        <div class="rpt-meta-row">
+            <span class="rpt-meta-label">REPORT GENERATION DATE:</span>
+            <span><%= generatedDate %></span>
+        </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="rpt-summary-box">
+        <div class="rpt-summary-label">SUMMARY</div>
+
+        <div class="rpt-summary-row">
+            <span class="rpt-summary-key">TOTAL PROPERTIES</span>
+            <span class="rpt-summary-val"><%= properties.total %></span>
+            <span class="rpt-summary-breakdown">
+                BREAKDOWN: &nbsp; HOUSE <%= properties.houseCount %> &nbsp;&nbsp; LOT <%= properties.lotCount %>
+                &nbsp;&nbsp; | &nbsp;&nbsp; DELINQUENT <%= properties.delinquent %>
+            </span>
+        </div>
+
+        <div class="rpt-summary-row">
+            <span class="rpt-summary-key">ACTIVE RESIDENTS DURING PERIOD</span>
+            <span class="rpt-summary-val"><%= residents.totalActive %></span>
+            <span class="rpt-summary-breakdown">
+                BREAKDOWN: &nbsp; HOMEOWNERS <%= residents.homeownerCount %> &nbsp;&nbsp; TENANTS <%= residents.tenantCount %>
+            </span>
+        </div>
+
+        <div class="rpt-summary-row">
+            <span class="rpt-summary-key">ACTIVE EMPLOYEES DURING PERIOD</span>
+            <span class="rpt-summary-val"><%= employees.length %></span>
+        </div>
+
+        <div class="rpt-summary-row">
+            <span class="rpt-summary-key">ACTIVE VEHICLES</span>
+            <span class="rpt-summary-val"><%= vehicles.totalActive %></span>
+        </div>
+
+        <div class="rpt-summary-row">
+            <span class="rpt-summary-key">CURRENT BOARD MEMBERS</span>
+            <span class="rpt-summary-val"><%= boardMembers.length %></span>
+        </div>
+    </div>
+
+    <!-- EMPLOYEES -->
+    <h2 class="rpt-section-title">Employees Active During Period</h2>
+    <table class="rpt-table vgr-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Contact Number</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (employees.length === 0) { %>
+            <tr>
+                <td colspan="6" style="text-align:center;padding:16px;color:#999;">No employees found for the selected period.</td>
+            </tr>
+            <% } else { %>
+                <% employees.forEach(emp => { %>
+                <tr>
+                    <td><%= emp.full_name %></td>
+                    <td><%= emp.position %></td>
+                    <td><%= fmtDate(emp.employee_start_date) %></td>
+                    <td><%= emp.employee_end_date ? fmtDate(emp.employee_end_date) : 'Active' %></td>
+                    <td><%= emp.contact_num || '—' %></td>
+                    <td><%= emp.email || '—' %></td>
+                </tr>
+                <% }) %>
+            <% } %>
+        </tbody>
+    </table>
+
+    <!-- BOARD MEMBERS -->
+    <h2 class="rpt-section-title" style="margin-top:32px;">Current Board Members</h2>
+    <table class="rpt-table vgr-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Term Start</th>
+                <th>Contact Number</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (boardMembers.length === 0) { %>
+            <tr>
+                <td colspan="5" style="text-align:center;padding:16px;color:#999;">No current board members found.</td>
+            </tr>
+            <% } else { %>
+                <% boardMembers.forEach(bm => { %>
+                <tr>
+                    <td><%= bm.full_name %></td>
+                    <td><%= bm.position %></td>
+                    <td><%= fmtDate(bm.board_start_date) %></td>
+                    <td><%= bm.contact_num || '—' %></td>
+                    <td><%= bm.email || '—' %></td>
+                </tr>
+                <% }) %>
+            <% } %>
+        </tbody>
+    </table>
+
+</div>
+
+<script id="reportData" type="application/json"><%- JSON.stringify({
+    properties,
+    residents,
+    vehicles,
+    employees,
+    boardMembers,
+    fromDateDisplay,
+    toDateDisplay,
+}) %></script>
+<script>
+function exportCSV() {
+    const d = JSON.parse(document.getElementById('reportData').textContent);
+    const { properties, residents, vehicles, employees, boardMembers, fromDateDisplay, toDateDisplay } = d;
+
+    const esc = val => '"' + String(val ?? '').replace(/"/g, '""') + '"';
+
+    const fmtDate = dateStr => {
+        if (!dateStr) return '';
+        return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    const lines = [];
+
+    lines.push(esc('GENERAL VILLAGE REPORT'));
+    lines.push([esc('Report Period'), esc(`${fromDateDisplay} — ${toDateDisplay}`)].join(','));
+    lines.push('');
+
+    lines.push(esc('SUMMARY'));
+    lines.push([esc('Metric'), esc('Value'), esc('Detail')].join(','));
+    lines.push([esc('Total Properties'), esc(properties.total), esc(`House: ${properties.houseCount}, Lot: ${properties.lotCount}, Delinquent: ${properties.delinquent}`)].join(','));
+    lines.push([esc('Active Residents During Period'), esc(residents.totalActive), esc(`Homeowners: ${residents.homeownerCount}, Tenants: ${residents.tenantCount}`)].join(','));
+    lines.push([esc('Active Employees During Period'), esc(employees.length), esc('')].join(','));
+    lines.push([esc('Active Vehicles'), esc(vehicles.totalActive), esc('')].join(','));
+    lines.push([esc('Current Board Members'), esc(boardMembers.length), esc('')].join(','));
+    lines.push('');
+
+    lines.push(esc('EMPLOYEES ACTIVE DURING PERIOD'));
+    lines.push([esc('Name'), esc('Position'), esc('Start Date'), esc('End Date'), esc('Contact Number'), esc('Email')].join(','));
+    employees.forEach(emp => {
+        lines.push([
+            esc(emp.full_name),
+            esc(emp.position),
+            esc(fmtDate(emp.employee_start_date)),
+            esc(emp.employee_end_date ? fmtDate(emp.employee_end_date) : 'Active'),
+            esc(emp.contact_num || ''),
+            esc(emp.email || ''),
+        ].join(','));
+    });
+    lines.push('');
+
+    lines.push(esc('CURRENT BOARD MEMBERS'));
+    lines.push([esc('Name'), esc('Position'), esc('Term Start'), esc('Contact Number'), esc('Email')].join(','));
+    boardMembers.forEach(bm => {
+        lines.push([
+            esc(bm.full_name),
+            esc(bm.position),
+            esc(fmtDate(bm.board_start_date)),
+            esc(bm.contact_num || ''),
+            esc(bm.email || ''),
+        ].join(','));
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'village_general_report.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>

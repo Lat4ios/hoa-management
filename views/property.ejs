@@ -1,0 +1,533 @@
+<!-- ============================================================
+     PROPERTY VIEW — Full CRUD
+     Layout: views/layouts/main.ejs
+     Controller: controllers/propertyController.js
+     Model: models/propertyModel.js
+     Extra CSS: property.css
+     ============================================================ -->
+
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Properties</h1>
+            <p class="page-subtitle">View, add, edit, and manage all properties</p>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success">
+                <i class="fa-solid fa-circle-check"></i> <%= success %>
+            </div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-error">
+                <i class="fa-solid fa-circle-exclamation"></i> <%= error %>
+            </div>
+        <% } %>
+
+        <div class="search-bar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="searchInput"
+                   placeholder="Search by lot number, street, or type..."
+                   oninput="filterTable()">
+            </div>
+
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fa-solid fa-plus"></i> Add Property
+            </button>
+        </div>
+
+        <div class="prop-filter-bar">
+            <button class="prop-filter-btn prop-filter-active" onclick="setDuesFilter('all', this)">All</button>
+            <button class="prop-filter-btn" onclick="setDuesFilter('settled', this)">Settled</button>
+            <button class="prop-filter-btn" onclick="setDuesFilter('dues', this)">Has Dues</button>
+        </div>
+
+        <p class="property-count" id="propertyCount">
+            Showing <strong><%= properties.length %></strong> propert<%= properties.length === 1 ? 'y' : 'ies' %>
+        </p>
+
+        <div class="table-container">
+            <table class="data-table" id="propertyTable">
+                <thead>
+                    <tr>
+                        <th>Lot Number</th>
+                        <th>Street Name</th>
+                        <th>Property Type</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (properties.length === 0) { %>
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                No property records found. Click "Add Property" to create one.
+                            </td>
+                        </tr>
+                    <% } else { %>
+                        <% properties.forEach(p => { %>
+                            <tr data-dues="<%= p.hasDues ? 'dues' : 'settled' %>">
+                                <td><%= p.lot_number || '—' %></td>
+                                <td><strong><%= p.street_name %></strong></td>
+                                <td><%= p.property_type %></td>
+                                <td>
+                                    <% if (p.hasDues) { %>
+                                        <span class="badge badge-dues">Has Dues &#8369;<%= parseFloat(p.outstandingBalance).toLocaleString('en-PH', {minimumFractionDigits:2}) %></span>
+                                    <% } else { %>
+                                        <span class="badge badge-settled">Settled</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <button class="btn-icon"
+                                            data-id="<%= p.property_id %>"
+                                            onclick="openViewModal(this.dataset.id)">
+                                        <i class="fa-solid fa-eye"></i> View Residents
+                                    </button>
+                                    <button class="btn-icon"
+                                            data-id="<%= p.property_id %>"
+                                            data-lot="<%= p.lot_number || '' %>"
+                                            data-street="<%= p.street_name %>"
+                                            data-type="<%= p.property_type %>"
+                                            onclick="openEditModal(this)">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button class="btn-icon btn-icon-warning"
+                                            title="Set Outstanding Balance"
+                                            data-id="<%= p.property_id %>"
+                                            data-label="Lot <%= p.lot_number || '—' %> <%= p.street_name %>"
+                                            data-outstanding="<%= p.outstandingBalance || 0 %>"
+                                            onclick="openOutstandingModal(this)">
+                                        <i class="fa-solid fa-peso-sign"></i>
+                                    </button>
+                                    <button class="btn-icon btn-icon-danger"
+                                            data-id="<%= p.property_id %>"
+                                            data-street="<%= p.street_name %>"
+                                            onclick="confirmDelete(this.dataset.id, this.dataset.street)">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-------------------------------- ADD / EDIT MODAL --------------------------------->
+<div id="propertyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add Property</h2>
+            <button class="modal-close" onclick="closeModal('propertyModal')">&times;</button>
+        </div>
+        <form id="propertyForm" method="POST" action="/properties">
+            <div class="modal-body">
+
+                <!-- Lot Number -->
+                <div class="form-group">
+                    <label for="lot_number">Lot Number</label>
+                    <input type="text" id="lot_number" name="lot_number" placeholder="e.g. 100">
+                </div>
+
+                <!-- Street Name dropdown -->
+                <div class="form-group">
+                    <label for="street_name">Street Name *</label>
+                    <select id="street_name" name="street_name" required>
+                        <option value="">-- Select street --</option>
+                        <option value="Alabastro">Alabastro</option>
+                        <option value="Cameo">Cameo</option>
+                        <option value="Coral">Coral</option>
+                        <option value="Diamante">Diamante</option>
+                        <option value="Esmeralda">Esmeralda</option>
+                        <option value="Maharlika">Maharlika</option>
+                        <option value="Nacar">Nacar</option>
+                        <option value="Perla">Perla</option>
+                        <option value="Rubi">Rubi</option>
+                        <option value="Topacio">Topacio</option>
+                        <option value="Zapiro">Zapiro</option>
+                    </select>
+                </div>
+
+                <!-- Property Type -->
+                <div class="form-group">
+                    <label for="property_type">Property Type *</label>
+                    <select id="property_type" name="property_type" required>
+                        <option value="">-- Select type --</option>
+                        <option value="House">House</option>
+                        <option value="Lot">Lot</option>
+                    </select>
+                </div>
+
+                <!-- Resident Association Section -->
+                <div class="form-section-header">Add Residents</div>
+                <hr style="margin-bottom: 12px;">
+
+                <!-- Already-added residents list -->
+                <div id="addedResidentsList" class="resident-list"></div>
+
+                <!-- Hidden inputs (rebuilt by JS on every change) -->
+                <div id="residentInputs"></div>
+
+                <!-- Mini-form to pick a resident + type -->
+                <div class="resident-add-row">
+                    <div class="resident-search-wrap" id="residentSearchWrap">
+                        <input type="text" id="residentSearchInput" class="resident-select" placeholder="Search resident..." autocomplete="off">
+                        <ul id="residentDropdownList" class="resident-dropdown-list"></ul>
+                    </div>
+                    <input type="hidden" id="residentSelectedId">
+                    <select id="residentTypeDropdown" class="resident-select">
+                        <option value="Homeowner">Homeowner</option>
+                        <option value="Relative">Relative</option>
+                        <option value="Helper">Helper</option>
+                        <option value="Lessee">Lessee</option>
+                        <option value="Others">Others</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary" onclick="addResident()">
+                        <i class="fa-solid fa-plus"></i> Add
+                    </button>
+                </div>
+
+                <!-- Resident data for JS -->
+                <script id="residentData" type="application/json">
+                    <%- JSON.stringify(residents) %>
+                </script>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('propertyModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Add Property</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-------------------------------- VIEW RESIDENTS MODAL --------------------------------->
+<div id="viewModal" class="modal">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+            <h2>View Residents</h2>
+            <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="viewResidentsList">
+                <p style="color:#888; text-align:center;">Loading...</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('viewModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!---------------------- OUTSTANDING BALANCE MODAL --------------------------->
+<div id="outstandingModal" class="modal">
+    <div class="modal-content" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2>Set Outstanding Balance</h2>
+            <button class="modal-close" onclick="closeModal('outstandingModal')">&times;</button>
+        </div>
+        <form id="outstandingForm" method="POST">
+            <div class="modal-body">
+                <p style="font-size:13px; color:#555; margin-bottom:14px;">
+                    Setting an outstanding balance will mark this property as having unpaid dues
+                    and flag all linked residents as <strong>delinquent</strong>.
+                    Setting the amount to <strong>0</strong> clears the balance and removes delinquent flags.
+                </p>
+                <div class="form-group">
+                    <label>Property</label>
+                    <input type="text" id="outstanding_property_label" class="form-control" readonly
+                           style="background:#f5f5f5; cursor:default;">
+                </div>
+                <div class="form-group">
+                    <label>Outstanding Balance Amount (₱) *</label>
+                    <input type="number" id="outstanding_amount" name="amount" min="0" step="0.01"
+                           class="form-control" required placeholder="e.g. 5000.00">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('outstandingModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Balance</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-------------------------------- DELETE MODAL --------------------------------->
+<div id="deleteModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2>Delete Property</h2>
+            <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deletePropertyName"></strong>?</p>
+            <p style="color: #dc3545; font-size: 13px; margin-top: 8px; font-weight: 500;">
+                This operation cannot be undone.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <form id="deleteForm" method="POST">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="/js/sidebar.js"></script>
+<script>
+    // ── Resident state for the add/edit modal ────────────────────────────────
+    let addedResidents = []; // [{resident_id, full_name, type}]
+
+    function renderResidentList() {
+        const listEl   = document.getElementById('addedResidentsList');
+        const inputsEl = document.getElementById('residentInputs');
+
+        listEl.innerHTML   = '';
+        inputsEl.innerHTML = '';
+
+        if (addedResidents.length === 0) {
+            listEl.innerHTML = '<p class="no-residents-msg">No residents added yet.</p>';
+            return;
+        }
+
+        addedResidents.forEach((r, i) => {
+            // Visual row
+            const row = document.createElement('div');
+            row.className = 'resident-list-item';
+            row.innerHTML = `
+                <span class="resident-name">${r.full_name}</span>
+                <span class="resident-type-badge">${r.type}</span>
+                <button type="button" class="btn-remove-resident" onclick="removeResident(${i})">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            listEl.appendChild(row);
+
+            // Hidden form inputs
+            inputsEl.innerHTML += `
+                <input type="hidden" name="resident_ids[]"   value="${r.resident_id}">
+                <input type="hidden" name="resident_types[]" value="${r.type}">
+            `;
+        });
+    }
+
+    // ── Resident search dropdown ────────────────────────────────────────────────
+    const allResidents = JSON.parse(document.getElementById('residentData').textContent);
+
+    const searchInput    = document.getElementById('residentSearchInput');
+    const dropdownList   = document.getElementById('residentDropdownList');
+    const selectedIdInput = document.getElementById('residentSelectedId');
+
+    searchInput.addEventListener('input', function () {
+        const query = this.value.trim().toLowerCase();
+        selectedIdInput.value = ''; // clear selection when user types
+        dropdownList.innerHTML = '';
+
+        if (!query) { dropdownList.style.display = 'none'; return; }
+
+        const matches = allResidents.filter(r => r.full_name.toLowerCase().includes(query));
+        if (matches.length === 0) { dropdownList.style.display = 'none'; return; }
+
+        matches.forEach(r => {
+            const li = document.createElement('li');
+            li.textContent = r.full_name;
+            li.dataset.id  = r.resident_id;
+            li.addEventListener('mousedown', function (e) {
+                e.preventDefault(); // keep focus
+                searchInput.value     = r.full_name;
+                selectedIdInput.value = r.resident_id;
+                dropdownList.style.display = 'none';
+            });
+            dropdownList.appendChild(li);
+        });
+        dropdownList.style.display = 'block';
+    });
+
+    searchInput.addEventListener('blur', () => {
+        setTimeout(() => { dropdownList.style.display = 'none'; }, 150);
+    });
+
+    function addResident() {
+        const resident_id = selectedIdInput.value;
+        const full_name   = searchInput.value.trim();
+        const type        = document.getElementById('residentTypeDropdown').value;
+
+        if (!resident_id) { alert('Please select a resident from the list.'); return; }
+
+        // Prevent same resident being added twice (compare as strings — DB returns ints, hidden input returns strings)
+        if (addedResidents.some(r => String(r.resident_id) === String(resident_id))) {
+            alert(`${full_name} is already linked to this property.`);
+            return;
+        }
+
+        addedResidents.push({ resident_id, full_name, type });
+        renderResidentList();
+
+        // Reset search
+        searchInput.value     = '';
+        selectedIdInput.value = '';
+        document.getElementById('residentTypeDropdown').value = 'Homeowner';
+    }
+
+    function removeResident(index) {
+        addedResidents.splice(index, 1);
+        renderResidentList();
+    }
+
+    // ── Modal: Add ──────────────────────────────────────────────────────────
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Add Property';
+        document.getElementById('submitBtn').textContent  = 'Add Property';
+        document.getElementById('propertyForm').action   = '/properties';
+        document.getElementById('propertyForm').reset();
+        searchInput.value = ''; selectedIdInput.value = '';
+        addedResidents = [];
+        renderResidentList();
+        document.getElementById('propertyModal').classList.add('active');
+    }
+
+    // ── Modal: Edit ─────────────────────────────────────────────────────────
+    async function openEditModal(btn) {
+        document.getElementById('modalTitle').textContent = 'Edit Property';
+        document.getElementById('submitBtn').textContent  = 'Save Changes';
+        document.getElementById('propertyForm').action   = '/properties/' + btn.dataset.id + '/update';
+
+        document.getElementById('lot_number').value    = btn.dataset.lot   || '';
+        document.getElementById('street_name').value   = btn.dataset.street;
+        document.getElementById('property_type').value = btn.dataset.type;
+
+        // Fetch existing residents for this property
+        searchInput.value = ''; selectedIdInput.value = '';
+        addedResidents = [];
+        renderResidentList();
+        try {
+            const res = await fetch('/properties/' + btn.dataset.id + '/residents');
+            if (res.ok) addedResidents = await res.json();
+        } catch (_) {}
+        renderResidentList();
+
+        document.getElementById('propertyModal').classList.add('active');
+    }
+
+    // ── Modal: View Residents ───────────────────────────────────────────────
+    async function openViewModal(id) {
+        document.getElementById('viewResidentsList').innerHTML =
+            '<p style="color:#888; text-align:center;">Loading...</p>';
+        document.getElementById('viewModal').classList.add('active');
+
+        try {
+            const res       = await fetch('/properties/' + id + '/residents');
+            const residents = await res.json();
+            const listEl    = document.getElementById('viewResidentsList');
+
+            if (residents.length === 0) {
+                listEl.innerHTML = '<p style="color:#888; text-align:center;">No residents linked to this property.</p>';
+                return;
+            }
+
+            listEl.innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    ${residents.map(r => `
+                        <a href="/residents?view_resident=${r.resident_id}"
+                           style="display:flex;align-items:center;justify-content:space-between;
+                                  padding:10px 14px;border:1px solid #e0e0e0;border-radius:8px;
+                                  text-decoration:none;color:inherit;background:#fafafa;
+                                  transition:background .15s;"
+                           onmouseover="this.style.background='#f0f4f0'"
+                           onmouseout="this.style.background='#fafafa'">
+                            <span style="font-weight:500;font-size:14px;">${r.full_name}</span>
+                            <span style="font-size:12px;color:#526F50;background:#e8f0e8;
+                                         padding:2px 10px;border-radius:999px;">${r.type}</span>
+                        </a>
+                    `).join('')}
+                </div>
+            `;
+        } catch (_) {
+            document.getElementById('viewResidentsList').innerHTML =
+                '<p style="color:#dc3545;">Failed to load residents.</p>';
+        }
+    }
+
+    // ── Modal: Outstanding Balance ───────────────────────────────────────────
+    function openOutstandingModal(btn) {
+        document.getElementById('outstanding_property_label').value = btn.dataset.label;
+        document.getElementById('outstanding_amount').value = parseFloat(btn.dataset.outstanding || 0).toFixed(2);
+        document.getElementById('outstandingForm').action = '/properties/' + btn.dataset.id + '/outstanding-balance';
+        document.getElementById('outstandingModal').classList.add('active');
+    }
+
+    // ── Modal: Delete ───────────────────────────────────────────────────────
+    function confirmDelete(id, streetName) {
+        document.getElementById('deletePropertyName').textContent = streetName;
+        document.getElementById('deleteForm').action = '/properties/' + id + '/delete';
+        document.getElementById('deleteModal').classList.add('active');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    // Close on backdrop click
+    window.onclick = function(event) {
+        ['propertyModal', 'viewModal', 'outstandingModal', 'deleteModal'].forEach(id => {
+            const el = document.getElementById(id);
+            if (event.target === el) closeModal(id);
+        });
+    };
+
+    // ── Search + dues filter ─────────────────────────────────────────────────
+    let activeDuesFilter = 'all';
+
+    function setDuesFilter(filter, btn) {
+        activeDuesFilter = filter;
+        document.querySelectorAll('.prop-filter-btn').forEach(b => b.classList.remove('prop-filter-active'));
+        btn.classList.add('prop-filter-active');
+        filterTable();
+    }
+
+    function filterTable() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        let visible = 0;
+
+        document.querySelectorAll('#propertyTable tbody tr').forEach(row => {
+            if (row.cells.length === 1 && row.cells[0].classList.contains('empty-state')) return;
+            const textMatch = row.textContent.toLowerCase().includes(q);
+            const duesMatch = activeDuesFilter === 'all' || row.dataset.dues === activeDuesFilter;
+            const show = textMatch && duesMatch;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        const countEl = document.getElementById('propertyCount');
+        countEl.innerHTML = `Showing <strong>${visible}</strong> propert${visible === 1 ? 'y' : 'ies'}`;
+    }
+
+    // Auto-dismiss alerts
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => a.style.display = 'none');
+    }, 4000);
+
+    // Init resident list on page load
+    renderResidentList();
+</script>

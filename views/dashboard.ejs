@@ -1,0 +1,262 @@
+<%
+    const fmt = (n) => {
+        const num = parseFloat(n) || 0;
+        if (num >= 1000000) return '₱' + (num / 1000000).toFixed(2) + 'M';
+        if (num >= 1000)    return '₱' + (num / 1000).toFixed(1)    + 'K';
+        return '₱' + num.toFixed(2);
+    };
+%>
+
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <p class="page-title">Dashboard</p>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <section class="welcome">
+            <h1 class="welcome-title">Welcome back, <strong>Admin</strong></h1>
+            <h3 class="welcome-date" id="liveDatetime">—</h3>
+        </section>
+
+        <!-- someone please fix formatting, I can't seem to get it right -->
+        <!-- there's a spacing problem between row 2 and 3 -->
+        <!-- ROW 1 — People & Assets -->
+        <section class="summary-cards">
+            <div class="card stat-card">
+                <div class="stat-icon green"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.totalResidents %></span>
+                    <span class="stat-label">Active Residents</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon blue"><i class="fa-solid fa-house"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.totalProperties %></span>
+                    <span class="stat-label">Total Properties</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon orange"><i class="fa-solid fa-id-badge"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.totalEmployees %></span>
+                    <span class="stat-label">Active Employees</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon purple"><i class="fa-solid fa-car"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.totalVehicles %></span>
+                    <span class="stat-label">Registered Vehicles</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROW 3 — Outstanding Dues -->
+        <section class="summary-cards row2">
+            <div class="card stat-card">
+                <div class="stat-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= fmt(stats.totalOutstanding) %></span>
+                    <span class="stat-label">Total Outstanding Dues</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon red"><i class="fa-solid fa-house-circle-exclamation"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.delinquentProperties %></span>
+                    <span class="stat-label">Properties with Dues</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon red"><i class="fa-solid fa-user-xmark"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.delinquentResidents %></span>
+                    <span class="stat-label">Delinquent Residents</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- MIDDLE ROW — Property Status + Delinquency -->
+        <section class="dashboard-grid">
+
+            <div class="card property-status-card">
+                <div class="card-header">
+                    <h2>Property Status</h2>
+                    <a href="/properties" class="view-all">View All</a>
+                </div>
+                <div class="status-list">
+                    <div class="status-row">
+                        <div class="status-dot occupied"></div>
+                        <span class="status-name">With Residents</span>
+                        <div class="status-bar-wrap">
+                            <div class="status-bar" style="width: <%= propertyStatus.occupiedPct %>%;"></div>
+                        </div>
+                        <span class="status-count"><%= propertyStatus.occupied %></span>
+                    </div>
+                    <div class="status-row">
+                        <div class="status-dot vacant"></div>
+                        <span class="status-name">No Residents</span>
+                        <div class="status-bar-wrap">
+                            <div class="status-bar vacant" style="width: <%= propertyStatus.vacantPct %>%;"></div>
+                        </div>
+                        <span class="status-count"><%= propertyStatus.vacant %></span>
+                    </div>
+                </div>
+                <p style="margin-top:20px; font-size:12px; color:#aaa;"><%= propertyStatus.total %> properties total</p>
+            </div>
+
+            <!-- DELINQUENCY REPORT -->
+            <div class="card delinquency-card">
+                <div class="card-header">
+                    <h2>Pending Payments</h2>
+                    <a href="/payments" class="view-all">View All</a>
+                </div>
+                <% if (delinquents.length === 0) { %>
+                    <p style="color:#aaa; font-size:13px; text-align:center; padding:24px 0;">
+                        No pending payments — all dues are settled.
+                    </p>
+                <% } else { %>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Purpose</th>
+                            <th>Balance</th>
+                            <th>Contact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% delinquents.forEach(d => { %>
+                        <tr>
+                            <td><%= d.full_name %></td>
+                            <td><%= d.purpose %></td>
+                            <td style="color:#dc3545; font-weight:600;">&#8369; <%= parseFloat(d.balance).toLocaleString('en-PH', {minimumFractionDigits:2}) %></td>
+                            <td><%= d.contact_num || '—' %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+                <% } %>
+            </div>
+
+        </section>
+
+        <!-- BOTTOM ROW — Board of Directors + Recent Payments -->
+        <section class="tables-row">
+
+            <div class="card table-card" style="max-width:100%; grid-column: auto;">
+                <div class="card-header">
+                    <h2>Board of Directors</h2>
+                    <a href="/boardMembers" class="view-all">View All</a>
+                </div>
+                <% if (boardMembers.length === 0) { %>
+                    <p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">No active board members on record.</p>
+                <% } else { %>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Position</th>
+                            <th>Contact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% boardMembers.forEach(b => { %>
+                        <tr>
+                            <td><%= b.full_name %></td>
+                            <td><%= b.position %></td>
+                            <td><%= b.contact_num || '—' %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+                <% } %>
+            </div>
+
+            <div class="card table-card" style="max-width:100%; grid-column: auto;">
+                <div class="card-header">
+                    <h2>Recent Payments</h2>
+                    <a href="/payments" class="view-all">View All</a>
+                </div>
+                <% if (recentPayments.length === 0) { %>
+                    <p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">No payments recorded yet.</p>
+                <% } else { %>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Payor</th>
+                            <th>Purpose</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% recentPayments.forEach(pay => {
+                            const paid     = parseFloat(pay.amount_paid)     || 0;
+                            const expected = parseFloat(pay.amount_expected)  || 0;
+                            let status = 'Unpaid', cls = 'status-unpaid';
+                            if (paid >= expected && paid > 0) { status = 'Paid';    cls = 'status-paid'; }
+                            else if (paid > 0)                { status = 'Partial'; cls = 'status-partial'; }
+                            const dateFmt = pay.date_paid
+                                ? new Date(pay.date_paid).toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'})
+                                : '—';
+                        %>
+                        <tr>
+                            <td><%= pay.payer_name || '—' %></td>
+                            <td><%= pay.purpose %></td>
+                            <td>&#8369; <%= paid.toLocaleString('en-PH', {minimumFractionDigits:2}) %></td>
+                            <td><span class="payment-status <%= cls %>"><%= status %></span></td>
+                            <td><%= dateFmt %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+                <% } %>
+            </div>
+
+        </section>
+
+    </main>
+</div>
+
+<script src="/js/sidebar.js"></script>
+<script>
+    (function () {
+        const el = document.getElementById('liveDatetime');
+        const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        function update() {
+            const now  = new Date();
+            const day  = days[now.getDay()];
+            const mon  = months[now.getMonth()];
+            const date = now.getDate();
+            const year = now.getFullYear();
+            let   hrs  = now.getHours();
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const ampm = hrs >= 12 ? 'PM' : 'AM';
+            hrs = hrs % 12 || 12;
+            el.textContent = `${day}, ${mon} ${date}, ${year} · ${hrs}:${mins} ${ampm}`;
+        }
+        update();
+        setInterval(update, 30000);
+    })();
+</script>

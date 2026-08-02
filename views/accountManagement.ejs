@@ -1,0 +1,569 @@
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Account Management</h1>
+            <p class="page-subtitle">Manage admin accounts and board member accounts</p>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <div class="admin-contact-card">
+            <div class="contact-header">
+                <h3><i class="ph ph-phone"></i> Admin Contact Information</h3>
+                <p class="contact-subtitle">Board members use this contact info to request access to the website</p>
+            </div>
+            <form action="/accounts/admin-contact" method="POST" class="contact-form">
+                <div class="contact-form-row">
+                    <div class="form-group">
+                        <label>Admin Email <span class="required-star">*</span></label>
+                        <input type="email" name="email" value="<%= adminContact.email || '' %>" placeholder="admin@hoa.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Admin Contact Number</label>
+                        <input type="text" name="contact_num" value="<%= adminContact.contact_num || '' %>" placeholder="09123456789">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ph ph-floppy-disk"></i> Update Contact Info
+                </button>
+            </form>
+        </div>
+
+        <div class="action-bar">
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openCreateAdminModal()">
+                    <i class="ph ph-user-plus"></i> Add Admin
+                </button>
+                <button class="btn btn-primary" onclick="openCreateBoardMemberModal()">
+                    <i class="ph ph-users-three"></i> Add Board Member Account
+                </button>
+            </div>
+            <div class="search-box">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="accountSearch" placeholder="Search accounts..." onkeyup="filterAccounts()">
+            </div>
+        </div>
+
+        <% if (success) { %>
+            <div class="alert alert-success"><i class="ph ph-check-circle"></i> <%= success %></div>
+        <% } %>
+        <% if (error) { %>
+            <div class="alert alert-error"><i class="ph ph-warning"></i> <%= error %></div>
+        <% } %>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="admins" onclick="switchTab('admins')">
+                <i class="ph ph-user-circle"></i> Admin Accounts
+                <span class="tab-count"><%= admins ? admins.length : 0 %></span>
+            </button>
+            <button class="tab-btn" data-tab="board-members" onclick="switchTab('board-members')">
+                <i class="ph ph-users-three"></i> Board Member Accounts
+                <span class="tab-count"><%= boardAccounts ? boardAccounts.length : 0 %></span>
+            </button>
+        </div>
+
+        <div id="tab-admins" class="tab-content active">
+            <div class="table-container">
+                <table class="data-table" id="adminTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Contact</th>
+                            <th>Created</th>
+                            <th style="text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody">
+                        <% if (admins && admins.length > 0) { %>
+                            <% admins.forEach(admin => { %>
+                                <tr data-username="<%= admin.username.toLowerCase() %>" data-email="<%= admin.email.toLowerCase() %>">
+                                    <td><strong><%= admin.username %></strong></td>
+                                    <td><%= admin.email %></td>
+                                    <td><%= admin.contact_num || '—' %></td>
+                                    <td><%= new Date(admin.created_at).toLocaleDateString() %></td>
+                                    <td style="text-align:center;">
+                                        <button class="btn-icon" onclick="openEditAdminModal('<%= admin.admin_id %>')" title="Edit">
+                                            <i class="ph ph-pencil-simple"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="openResetAdminPasswordModal('<%= admin.admin_id %>', '<%= admin.username %>')" title="Reset Password">
+                                            <i class="ph ph-key"></i>
+                                        </button>
+                                        <% if (admins.length > 1) { %>
+                                            <button class="btn-icon btn-icon-danger" onclick="confirmDeleteAdmin('<%= admin.admin_id %>', '<%= admin.username %>')" title="Delete">
+                                                <i class="ph ph-trash"></i>
+                                            </button>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr><td colspan="5" class="empty-state">No admin accounts found.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-board-members" class="tab-content">
+            <div class="table-container">
+                <table class="data-table" id="boardTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Contact</th>
+                            <th>Board Member</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th style="text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boardTableBody">
+                        <% if (boardAccounts && boardAccounts.length > 0) { %>
+                            <% boardAccounts.forEach(account => { %>
+                                <tr data-username="<%= account.username.toLowerCase() %>" data-email="<%= account.email.toLowerCase() %>">
+                                    <td><strong><%= account.username %></strong></td>
+                                    <td><%= account.email %></td>
+                                    <td><%= account.contact_num || '—' %></td>
+                                    <td><%= account.board_member_name || '—' %></td>
+                                    <td>
+                                        <span class="badge <%= account.isActive ? 'badge-active' : 'badge-inactive' %>">
+                                            <%= account.isActive ? 'Active' : 'Inactive' %>
+                                        </span>
+                                    </td>
+                                    <td><%= account.last_login ? new Date(account.last_login).toLocaleDateString() : 'Never' %></td>
+                                    <td style="text-align:center;">
+                                        <button class="btn-icon" onclick="openEditBoardMemberModal('<%= account.account_id %>')" title="Edit">
+                                            <i class="ph ph-pencil-simple"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="openResetBoardMemberPasswordModal('<%= account.account_id %>', '<%= account.username %>')" title="Reset Password">
+                                            <i class="ph ph-key"></i>
+                                        </button>
+                                        <button class="btn-icon btn-icon-danger" onclick="confirmDeleteBoardMember('<%= account.account_id %>', '<%= account.username %>')" title="Delete">
+                                            <i class="ph ph-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr><td colspan="7" class="empty-state">No board member accounts found.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="createAdminModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-user-plus"></i> Add Admin Account</h2>
+                <button class="modal-close" onclick="closeModal('createAdminModal')">&times;</button>
+            </div>
+            <form action="/accounts/admin" method="POST">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username <span class="required-star">*</span></label>
+                            <input type="text" name="username" required placeholder="Enter username">
+                        </div>
+                        <div class="form-group">
+                            <label>Password <span class="required-star">*</span></label>
+                            <input type="password" name="password" required minlength="6" placeholder="Min 6 characters">
+                            <small class="help-text">Minimum 6 characters</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email <span class="required-star">*</span></label>
+                            <input type="email" name="email" required placeholder="admin@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Number</label>
+                            <input type="text" name="contact_num" placeholder="09123456789">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createAdminModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editAdminModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-pencil-simple"></i> Edit Admin Account</h2>
+                <button class="modal-close" onclick="closeModal('editAdminModal')">&times;</button>
+            </div>
+            <form id="editAdminForm" action="" method="POST">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username <span class="required-star">*</span></label>
+                            <input type="text" name="username" id="edit_admin_username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email <span class="required-star">*</span></label>
+                            <input type="email" name="email" id="edit_admin_email" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" name="contact_num" id="edit_admin_contact" placeholder="09123456789">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editAdminModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="resetAdminPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-key"></i> Reset Admin Password</h2>
+                <button class="modal-close" onclick="closeModal('resetAdminPasswordModal')">&times;</button>
+            </div>
+            <form id="resetAdminPasswordForm" action="" method="POST">
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px;">Resetting password for: <strong id="reset_admin_username_display"></strong></p>
+                    <div class="form-group">
+                        <label>Current Password <span class="required-star">*</span></label>
+                        <input type="password" name="current_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password <span class="required-star">*</span></label>
+                        <input type="password" name="new_password" required minlength="6">
+                        <small class="help-text">Minimum 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password <span class="required-star">*</span></label>
+                        <input type="password" name="confirm_password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('resetAdminPasswordModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteAdminModal" class="modal">
+        <div class="modal-content modal-danger">
+            <div class="modal-header">
+                <h2 style="color:#dc3545;"><i class="ph ph-warning"></i> Confirm Delete</h2>
+                <button class="modal-close" onclick="closeModal('deleteAdminModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 15px;">Are you sure you want to delete admin account: <strong id="delete_admin_username_display"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteAdminModal')">Cancel</button>
+                <form id="deleteAdminForm" action="" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">Delete Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="createBoardMemberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-users-three"></i> Add Board Member Account</h2>
+                <button class="modal-close" onclick="closeModal('createBoardMemberModal')">&times;</button>
+            </div>
+            <form action="/accounts/board-member" method="POST">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username <span class="required-star">*</span></label>
+                            <input type="text" name="username" required placeholder="Enter username">
+                        </div>
+                        <div class="form-group">
+                            <label>Password <span class="required-star">*</span></label>
+                            <input type="password" name="password" required minlength="6" placeholder="Min 6 characters">
+                            <small class="help-text">Minimum 6 characters</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email <span class="required-star">*</span></label>
+                            <input type="email" name="email" required placeholder="board@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Number</label>
+                            <input type="text" name="contact_num" placeholder="09123456789">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Board Member</label>
+                            <select name="board_member_id">
+                                <option value="">— None —</option>
+                                <% if (availableBoardMembers && availableBoardMembers.length > 0) { %>
+                                    <% availableBoardMembers.forEach(member => { %>
+                                        <option value="<%= member.board_id %>">
+                                            <%= member.full_name %> (<%= member.position %>)
+                                        </option>
+                                    <% }) %>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="isActive">
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createBoardMemberModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editBoardMemberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-pencil-simple"></i> Edit Board Member Account</h2>
+                <button class="modal-close" onclick="closeModal('editBoardMemberModal')">&times;</button>
+            </div>
+            <form id="editBoardMemberForm" action="" method="POST">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username <span class="required-star">*</span></label>
+                            <input type="text" name="username" id="edit_bm_username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email <span class="required-star">*</span></label>
+                            <input type="email" name="email" id="edit_bm_email" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Number</label>
+                            <input type="text" name="contact_num" id="edit_bm_contact" placeholder="09123456789">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="isActive" id="edit_bm_status">
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editBoardMemberModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="resetBoardMemberPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-key"></i> Reset Board Member Password</h2>
+                <button class="modal-close" onclick="closeModal('resetBoardMemberPasswordModal')">&times;</button>
+            </div>
+            <form id="resetBoardMemberPasswordForm" action="" method="POST">
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px;">Resetting password for: <strong id="reset_bm_username_display"></strong></p>
+                    <div class="form-group">
+                        <label>Current Password <span class="required-star">*</span></label>
+                        <input type="password" name="current_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password <span class="required-star">*</span></label>
+                        <input type="password" name="new_password" required minlength="6">
+                        <small class="help-text">Minimum 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password <span class="required-star">*</span></label>
+                        <input type="password" name="confirm_password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('resetBoardMemberPasswordModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <div id="deleteBoardMemberModal" class="modal">
+        <div class="modal-content modal-danger">
+            <div class="modal-header">
+                <h2 style="color:#dc3545;"><i class="ph ph-warning"></i> Confirm Delete</h2>
+                <button class="modal-close" onclick="closeModal('deleteBoardMemberModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 15px;">Are you sure you want to delete board member account: <strong id="delete_bm_username_display"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteBoardMemberModal')">Cancel</button>
+                <form id="deleteBoardMemberForm" action="" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">Delete Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/js/sidebar.js"></script>
+<script>
+    const admins = JSON.parse(document.getElementById('adminData').textContent || '[]');
+    const boardAccounts = JSON.parse(document.getElementById('boardData').textContent || '[]');
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('tab-active');
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        
+        document.getElementById('accountSearch').value = '';
+        document.getElementById('adminTableBody').querySelectorAll('tr').forEach(row => row.style.display = '');
+        document.getElementById('boardTableBody').querySelectorAll('tr').forEach(row => row.style.display = '');
+    }
+
+    function filterAccounts() {
+        const query = document.getElementById('accountSearch').value.toLowerCase().trim();
+        const activeTab = document.querySelector('.tab-btn.tab-active');
+        if (!activeTab) return;
+        
+        const tab = activeTab.dataset.tab;
+        const tableBody = document.getElementById(tab === 'admins' ? 'adminTableBody' : 'boardTableBody');
+        const rows = tableBody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            if (row.querySelector('.empty-state')) {
+                row.style.display = '';
+                return;
+            }
+            const username = row.dataset.username || '';
+            const email = row.dataset.email || '';
+            const match = username.includes(query) || email.includes(query);
+            row.style.display = match ? '' : 'none';
+        });
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    function openCreateAdminModal() {
+        document.getElementById('createAdminModal').classList.add('active');
+    }
+
+    function openEditAdminModal(id) {
+        const form = document.getElementById('editAdminForm');
+        form.action = `/accounts/admin/${id}/update`;
+        
+        const admin = admins.find(a => a.admin_id == id);
+        if (admin) {
+            document.getElementById('edit_admin_username').value = admin.username;
+            document.getElementById('edit_admin_email').value = admin.email;
+            document.getElementById('edit_admin_contact').value = admin.contact_num || '';
+        }
+        
+        document.getElementById('editAdminModal').classList.add('active');
+    }
+
+    function openResetAdminPasswordModal(id, username) {
+        const form = document.getElementById('resetAdminPasswordForm');
+        form.action = `/accounts/admin/${id}/reset-password`;
+        document.getElementById('reset_admin_username_display').textContent = username;
+        document.getElementById('resetAdminPasswordModal').classList.add('active');
+    }
+
+    function confirmDeleteAdmin(id, username) {
+        const form = document.getElementById('deleteAdminForm');
+        form.action = `/accounts/admin/${id}/delete`;
+        document.getElementById('delete_admin_username_display').textContent = username;
+        document.getElementById('deleteAdminModal').classList.add('active');
+    }
+
+    function openCreateBoardMemberModal() {
+        document.getElementById('createBoardMemberModal').classList.add('active');
+    }
+
+    function openEditBoardMemberModal(id) {
+        const form = document.getElementById('editBoardMemberForm');
+        form.action = `/accounts/board-member/${id}/update`;
+        
+        const account = boardAccounts.find(a => a.account_id == id);
+        if (account) {
+            document.getElementById('edit_bm_username').value = account.username;
+            document.getElementById('edit_bm_email').value = account.email;
+            document.getElementById('edit_bm_contact').value = account.contact_num || '';
+            document.getElementById('edit_bm_status').value = account.isActive ? '1' : '0';
+        }
+        
+        document.getElementById('editBoardMemberModal').classList.add('active');
+    }
+
+    function openResetBoardMemberPasswordModal(id, username) {
+        const form = document.getElementById('resetBoardMemberPasswordForm');
+        form.action = `/accounts/board-member/${id}/reset-password`;
+        document.getElementById('reset_bm_username_display').textContent = username;
+        document.getElementById('resetBoardMemberPasswordModal').classList.add('active');
+    }
+
+    function confirmDeleteBoardMember(id, username) {
+        const form = document.getElementById('deleteBoardMemberForm');
+        form.action = `/accounts/board-member/${id}/delete`;
+        document.getElementById('delete_bm_username_display').textContent = username;
+        document.getElementById('deleteBoardMemberModal').classList.add('active');
+    }
+
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+        }
+    });
+</script>
+
+<% if (admins) { %>
+    <script id="adminData" type="application/json"><%= JSON.stringify(admins) %></script>
+<% } %>
+
+<% if (boardAccounts) { %>
+    <script id="boardData" type="application/json"><%= JSON.stringify(boardAccounts) %></script>
+<% } %>

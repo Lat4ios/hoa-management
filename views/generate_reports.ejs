@@ -1,0 +1,572 @@
+<div class="content">
+    <div class="page-header">
+        <h1>Generate Reports</h1>
+        <p class="page-subtitle">Generate, view, and export HOA reports for record-keeping and analysis</p>
+    </div>
+
+    <% if (success) { %>
+        <div class="alert alert-success"><i class="ph ph-check-circle"></i> <%= success %></div>
+    <% } %>
+    <% if (error) { %>
+        <div class="alert alert-error"><i class="ph ph-warning"></i> <%= error %></div>
+    <% } %>
+
+    <div class="time-period-filter">
+        <div class="filter-header">
+            <h3><i class="ph ph-calendar"></i> Report Period</h3>
+            <p class="filter-subtitle">Select a time period for the reports below</p>
+        </div>
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label>Date Range</label>
+                <div class="date-range">
+                    <input type="date" id="startDate" value="<%= startDate || '' %>">
+                    <span>to</span>
+                    <input type="date" id="endDate" value="<%= endDate || '' %>">
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Quick Select</label>
+                <div class="quick-select">
+                    <button class="quick-btn" onclick="setDateRange('today')">Today</button>
+                    <button class="quick-btn" onclick="setDateRange('week')">This Week</button>
+                    <button class="quick-btn" onclick="setDateRange('month')">This Month</button>
+                    <button class="quick-btn" onclick="setDateRange('year')">This Year</button>
+                    <button class="quick-btn" onclick="setDateRange('all')">All Time</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="window.print()">
+                <i class="ph ph-printer"></i> Print Page
+            </button>
+            <button class="btn btn-secondary" onclick="applyDateFilter()">
+                <i class="ph ph-funnel"></i> Apply Filter
+            </button>
+            <button class="btn btn-secondary" onclick="resetFilters()">
+                <i class="ph ph-arrows-clockwise"></i> Reset
+            </button>
+        </div>
+        <div class="report-stats">
+            <span class="stat-badge">
+                <i class="ph ph-file-text"></i> <span id="reportCount">6</span> Reports Available
+            </span>
+        </div>
+    </div>
+
+    <div class="report-filters">
+        <div class="search-box">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="reportSearch" placeholder="Search reports..." onkeyup="filterReports()">
+        </div>
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all" onclick="filterReports('all')">All</button>
+            <button class="filter-btn" data-filter="available" onclick="filterReports('available')">Available</button>
+            <button class="filter-btn" data-filter="coming" onclick="filterReports('coming')">Coming Soon</button>
+        </div>
+    </div>
+
+    <div class="report-cards" id="reportCards">
+        
+        <div class="report-card available" data-title="general village report" data-category="available">
+            <div class="report-card-icon green">
+                <i class="ph ph-buildings"></i>
+            </div>
+            <div class="report-card-info">
+                <h3>General Village Report</h3>
+                <p>Properties, active residents, active employees, active vehicles, and board members summary</p>
+                <div class="report-meta">
+                    <span><i class="ph ph-clock"></i> Real-time</span>
+                    <span><i class="ph ph-file-csv"></i> CSV Export</span>
+                    <span><i class="ph ph-check-circle"></i> Available</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <a href="/reports/hoa-general" class="btn btn-primary btn-sm" target="_blank">
+                    <i class="ph ph-eye"></i> View
+                </a>
+                <button class="btn btn-secondary btn-sm" onclick="exportReport('hoa-general')">
+                    <i class="ph ph-download-simple"></i> CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card available" data-title="senior citizen report" data-category="available">
+            <div class="report-card-icon blue">
+                <i class="ph ph-user"></i>
+            </div>
+            <div class="report-card-info">
+                <h3>Senior Citizen Report</h3>
+                <p>Active, inactive, and upcoming senior citizens (60+ years old) with age breakdown</p>
+                <div class="report-meta">
+                    <span><i class="ph ph-clock"></i> Real-time</span>
+                    <span><i class="ph ph-file-csv"></i> CSV Export</span>
+                    <span><i class="ph ph-check-circle"></i> Available</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <a href="/reports/senior-citizens" class="btn btn-primary btn-sm" target="_blank">
+                    <i class="ph ph-eye"></i> View
+                </a>
+                <button class="btn btn-secondary btn-sm" onclick="exportReport('senior-citizens')">
+                    <i class="ph ph-download-simple"></i> CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card available" data-title="delinquency report" data-category="available">
+            <div class="report-card-icon red">
+                <i class="ph ph-warning"></i>
+            </div>
+            <div class="report-card-info">
+                <h3>Delinquency Report</h3>
+                <p>Properties with outstanding balances, delinquent owners, and total amount due</p>
+                <div class="report-meta">
+                    <span><i class="ph ph-clock"></i> Real-time</span>
+                    <span><i class="ph ph-file-csv"></i> CSV Export</span>
+                    <span><i class="ph ph-check-circle"></i> Available</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <a href="/reports/delinquency" class="btn btn-primary btn-sm" target="_blank">
+                    <i class="ph ph-eye"></i> View
+                </a>
+                <button class="btn btn-secondary btn-sm" onclick="exportReport('delinquency')">
+                    <i class="ph ph-download-simple"></i> CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card available" data-title="vehicle sticker report" data-category="available">
+            <div class="report-card-icon yellow">
+                <i class="ph ph-car"></i>
+            </div>
+            <div class="report-card-info">
+                <h3>Vehicle Sticker Report</h3>
+                <p>Total sticker earnings, breakdown by vehicle type, and sticker issuance summary</p>
+                <div class="report-meta">
+                    <span><i class="ph ph-clock"></i> Real-time</span>
+                    <span><i class="ph ph-file-csv"></i> CSV Export</span>
+                    <span><i class="ph ph-check-circle"></i> Available</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <button class="btn btn-primary btn-sm" onclick="viewReport('vehicle-sticker')">
+                    <i class="ph ph-eye"></i> View
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="exportReport('vehicle-sticker')">
+                    <i class="ph ph-download-simple"></i> CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card available" data-title="finances report" data-category="available">
+            <div class="report-card-icon purple">
+                <i class="ph ph-currency-circle-dollar"></i>
+            </div>
+            <div class="report-card-info">
+                <h3>Finances Report</h3>
+                <p>Total earnings, total expenses, breakdown by category, and net income summary</p>
+                <div class="report-meta">
+                    <span><i class="ph ph-clock"></i> Real-time</span>
+                    <span><i class="ph ph-file-csv"></i> CSV Export</span>
+                    <span><i class="ph ph-check-circle"></i> Available</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <button class="btn btn-primary btn-sm" onclick="viewReport('finances')">
+                    <i class="ph ph-eye"></i> View
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="exportReport('finances')">
+                    <i class="ph ph-download-simple"></i> CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="report-card available" data-title="full village data export" data-category="available">
+            <div class="report-card-icon orange">
+                <i class="ph ph-database"></i>
+            </div>
+            <div class="report-card-info">
+                <h3>Full Village Data Export</h3>
+                <p>Complete export of board members, properties, residents, vehicles, employees, payments, and expenses</p>
+                <div class="report-meta">
+                    <span><i class="ph ph-clock"></i> Real-time</span>
+                    <span><i class="ph ph-file-csv"></i> CSV Export</span>
+                    <span><i class="ph ph-check-circle"></i> Available</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <button class="btn btn-primary btn-sm" onclick="exportFullData()">
+                    <i class="ph ph-download-simple"></i> Export All CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="noResults" class="no-results" style="display:none;">
+        <i class="ph ph-file-search"></i>
+        <h3>No reports found</h3>
+        <p>Try adjusting your search or filter criteria.</p>
+    </div>
+
+    <div class="print-hint">
+        <i class="ph ph-info"></i>
+        <div>
+            <strong>Reports are optimized for printing.</strong>
+            <span>Use the print button or <kbd>Ctrl+P</kbd> to generate a physical copy.</span>
+        </div>
+    </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+    function setDateRange(range) {
+        const today = new Date();
+        const start = document.getElementById('startDate');
+        const end = document.getElementById('endDate');
+        
+        const formatDate = (date) => {
+            return date.toISOString().split('T')[0];
+        };
+        
+        switch(range) {
+            case 'today':
+                start.value = formatDate(today);
+                end.value = formatDate(today);
+                break;
+            case 'week':
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay());
+                start.value = formatDate(weekStart);
+                end.value = formatDate(today);
+                break;
+            case 'month':
+                const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                start.value = formatDate(monthStart);
+                end.value = formatDate(today);
+                break;
+            case 'year':
+                const yearStart = new Date(today.getFullYear(), 0, 1);
+                start.value = formatDate(yearStart);
+                end.value = formatDate(today);
+                break;
+            case 'all':
+                start.value = '';
+                end.value = '';
+                break;
+        }
+    }
+
+    function applyDateFilter() {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        
+        if (start && end && start > end) {
+            showToast('Start date cannot be after end date.', 'error');
+            return;
+        }
+        
+        showToast('Date filter applied successfully!', 'success');
+    }
+
+    function resetFilters() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('reportSearch').value = '';
+        filterReports('all');
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+        showToast('Filters reset successfully!', 'success');
+    }
+
+    function filterReports(category) {
+        const query = document.getElementById('reportSearch').value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.report-card');
+        let visibleCount = 0;
+
+        if (category) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === category) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        const activeFilter = document.querySelector('.filter-btn.active');
+        const filterCategory = activeFilter ? activeFilter.dataset.filter : 'all';
+
+        cards.forEach(card => {
+            const title = card.dataset.title || '';
+            const cardCategory = card.dataset.category || 'available';
+            
+            const matchesSearch = title.includes(query);
+            let matchesCategory = true;
+            if (filterCategory !== 'all') {
+                matchesCategory = cardCategory === filterCategory;
+            }
+            
+            const visible = matchesSearch && matchesCategory;
+            card.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+
+        document.getElementById('noResults').style.display = visibleCount === 0 ? 'flex' : 'none';
+        document.getElementById('reportCount').textContent = visibleCount;
+    }
+
+    function viewReport(reportType) {
+        const reports = {
+            'vehicle-sticker': {
+                title: 'Vehicle Sticker Report',
+                description: 'Total sticker earnings and breakdown by vehicle type'
+            },
+            'finances': {
+                title: 'Finances Report',
+                description: 'Total earnings, expenses, and breakdown by category'
+            }
+        };
+        
+        const report = reports[reportType];
+        if (!report) return;
+        
+        showToast(`Viewing ${report.title}...`, 'success');
+    }
+
+    function exportReport(reportType) {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Exporting...';
+        btn.disabled = true;
+
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        setTimeout(() => {
+            const csvContent = generateCSV(reportType, startDate, endDate);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            showToast('Report exported successfully!', 'success');
+        }, 1500);
+    }
+
+    function exportFullData() {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Exporting...';
+        btn.disabled = true;
+
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        setTimeout(() => {
+            const reports = ['board-members', 'properties', 'residents', 'vehicles', 'employees', 'payments', 'expenses'];
+            let fullCSV = '';
+            
+            reports.forEach((report, index) => {
+                const data = generateFullDataCSV(report, startDate, endDate);
+                if (index > 0) fullCSV += '\n\n';
+                fullCSV += `=== ${report.toUpperCase()} ===\n`;
+                fullCSV += data;
+            });
+
+            const blob = new Blob([fullCSV], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `full-village-data-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            showToast('Full village data exported successfully!', 'success');
+        }, 2000);
+    }
+
+    function generateCSV(reportType, startDate, endDate) {
+        const headers = {
+            'hoa-general': 'Property Type,Total,Active,Inactive,Notes',
+            'senior-citizens': 'Name,Age,Status,Address,Category,Contact',
+            'delinquency': 'Property,Lot Number,Street,Type,Outstanding Balance,Owner(s),Last Payment',
+            'vehicle-sticker': 'Vehicle Type,Count,Sticker Fee,Total Revenue,Percentage',
+            'finances': 'Category,Amount,Type,Date,Description,Payment Method'
+        };
+
+        const sampleData = {
+            'hoa-general': [
+                'Houses,45,38,7,Active residents: 120',
+                'Lots,30,25,5,Active residents: 45',
+                'Employees,12,10,2,Active employees: 10',
+                'Vehicles,85,72,13,Active vehicles: 72',
+                'Board Members,7,7,0,Active board: 7'
+            ],
+            'senior-citizens': [
+                'Juan Dela Cruz,65,Active,123 Main St,Active Senior,09123456789',
+                'Maria Santos,62,Active,456 Oak Ave,Active Senior,09123456788',
+                'Pedro Reyes,58,Active,789 Pine St,Turning 60,09123456787',
+                'Ana Garcia,70,Inactive,321 Elm St,Inactive Senior,09123456786'
+            ],
+            'delinquency': [
+                'House A,001,Main St,House,5000.00,John Doe,2024-01-15',
+                'House C,003,Oak Ave,House,3200.00,Jane Smith,2024-02-20',
+                'Lot B,002,Main St,Lot,2500.00,Robert Johnson,2024-03-10'
+            ],
+            'vehicle-sticker': [
+                'Car,45,600.00,27000.00,64.3%',
+                'Motorcycle,20,370.00,7400.00,17.6%',
+                'Commercial,5,1000.00,5000.00,11.9%',
+                'Car (6+ stickers),3,1000.00,3000.00,7.1%'
+            ],
+            'finances': [
+                'Vehicle Stickers,42400.00,Earnings,2024-07-15,Sticker fees collected,',
+                'Association Dues,8800.00,Earnings,2024-07-14,Monthly dues,',
+                'Utilities,2500.00,Expense,2024-07-13,Electricity bill,',
+                'Maintenance,1500.00,Expense,2024-07-12,Repairs,',
+                'General Payments,500.00,Earnings,2024-07-11,Donation,'
+            ]
+        };
+
+        const headerRow = headers[reportType] || 'Data';
+        const dataRows = sampleData[reportType] || ['Sample data'];
+        
+        let csv = headerRow + '\n';
+        dataRows.forEach(row => {
+            csv += row + '\n';
+        });
+        
+        csv += '\n--- Report Period ---\n';
+        csv += `Start Date,${startDate || 'All Time'}\n`;
+        csv += `End Date,${endDate || 'All Time'}\n`;
+        csv += `Generated,${new Date().toLocaleString()}`;
+        
+        return csv;
+    }
+
+    function generateFullDataCSV(reportType, startDate, endDate) {
+        const data = {
+            'board-members': 'Name,Position,Start Date,End Date,Contact,Email\nJuan Dela Cruz,President,2023-01-01,,09123456789,juan@email.com\nMaria Santos,Secretary,2023-01-01,,09123456788,maria@email.com',
+            'properties': 'Lot Number,Street,Type,Status,Residents,Outstanding Balance\n001,Main St,House,Occupied,John Doe,0.00\n002,Main St,Lot,Vacant,,0.00',
+            'residents': 'Name,Email,Contact,Status,Property,Type\nJohn Doe,john@email.com,09123456789,Active,001 Main St,Homeowner\nJane Smith,jane@email.com,09123456788,Active,003 Oak Ave,Homeowner',
+            'vehicles': 'Type,Plate Number,Make,Model,Color,Status,Owner\nCar,ABC-123,Toyota,Vios,White,Active,John Doe\nMotorcycle,DEF-456,Honda,Click,Red,Active,Jane Smith',
+            'employees': 'Name,Position,Department,Start Date,Status,Contact\nMark Reyes,Security Guard,Security,2023-06-01,Active,09123456787',
+            'payments': 'Date,Amount,Type,Method,Receipt,Payer\n2024-07-15,600.00,Sticker,Cash,RCP-001,John Doe',
+            'expenses': 'Date,Amount,Category,Description,Method\n2024-07-13,2500.00,Utilities,Electricity Bill,Bank Transfer'
+        };
+        return data[reportType] || 'No data available';
+    }
+
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <i class="ph ph-${type === 'success' ? 'check-circle' : 'warning'}"></i>
+            <span>${message}</span>
+        `;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('toast-show');
+        }, 100);
+
+        setTimeout(() => {
+            toast.classList.remove('toast-show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            document.getElementById('reportSearch').focus();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const totalCards = document.querySelectorAll('.report-card').length;
+        document.getElementById('reportCount').textContent = totalCards;
+    });
+</script>
+
+<style>
+    #toastContainer {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 9999;
+    }
+
+    .toast {
+        padding: 14px 24px;
+        border-radius: 12px;
+        background: #1a1a1a;
+        color: white;
+        font-size: 14px;
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        transform: translateX(100px);
+        opacity: 0;
+        transition: all 0.3s ease;
+        max-width: 400px;
+        min-width: 280px;
+    }
+
+    .toast.toast-show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    .toast-success {
+        border-left: 4px solid #22c55e;
+    }
+
+    .toast-error {
+        border-left: 4px solid #ef4444;
+    }
+
+    .toast i {
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .toast-success i {
+        color: #22c55e;
+    }
+
+    .toast-error i {
+        color: #ef4444;
+    }
+
+    .ph-spin {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>

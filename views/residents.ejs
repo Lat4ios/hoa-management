@@ -1,0 +1,791 @@
+<!-- ============================================================
+     RESIDENTS VIEW (includes Board Members toggle)
+     Layout: views/layouts/main.ejs
+     Controller: controllers/residentController.js
+     ============================================================ -->
+
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title" id="pageTitle">Residents</h1>
+            <p class="page-subtitle" id="pageSubtitle">View, add, edit, and manage resident information</p>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success">
+                <i class="fa-solid fa-circle-check"></i> <%= success %>
+            </div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-error">
+                <i class="fa-solid fa-circle-exclamation"></i> <%= error %>
+            </div>
+        <% } %>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+            <button id="tabResidents" class="tab-btn tab-active" onclick="switchTab('residents')">
+                <i class="fa-solid fa-users"></i> Residents
+            </button>
+            <button id="tabBoardMembers" class="tab-btn" onclick="switchTab('boardMembers')">
+                <i class="fa-solid fa-star"></i> Board Members
+            </button>
+        </div>
+
+        <div class="search-bar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="searchInput"
+                   placeholder="Search by name, email, status..."
+                   oninput="filterTable()">
+            </div>
+
+            <button id="btnAddResident" class="btn btn-primary" onclick="openAddModal()">
+                <i class="fa-solid fa-plus"></i> Add Resident
+            </button>
+            <button id="btnAddBoardMember" class="btn btn-primary" style="display:none;" onclick="openBMAddModal()">
+                <i class="fa-solid fa-plus"></i> Add Board Member
+            </button>
+        </div>
+
+        <!-- ── RESIDENTS SECTION ────────────────────────────────────────────── -->
+        <div id="residentsSection">
+
+            <div class="bm-filter-bar">
+                <button class="bm-filter-btn bm-filter-active" data-filter="all"         onclick="filterResidents('all')">All</button>
+                <button class="bm-filter-btn"                  data-filter="good"        onclick="filterResidents('good')">Good Standing</button>
+                <button class="bm-filter-btn"                  data-filter="delinquent"  onclick="filterResidents('delinquent')">Delinquent</button>
+            </div>
+
+            <p class="resident-count">
+                Showing <strong id="residentCountNumber"><%= residents.length %></strong> residents
+            </p>
+
+            <div class="table-container">
+                <table class="data-table" id="residentTable">
+                    <thead>
+                        <tr>
+                            <th>Resident Name</th>
+                            <th>Date of Birth</th>
+                            <th>Email</th>
+                            <th>Phone Number</th>
+                            <th>Residency Status</th>
+                            <th>Dues Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (residents.length === 0) { %>
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    No resident records found. Click "Add Resident" to create one.
+                                </td>
+                            </tr>
+                        <% } else { %>
+                            <% residents.forEach(resident => { %>
+                                <tr data-status="<%= resident.isDelinquent ? 'delinquent' : 'good' %>">
+                                    <td><strong><%= resident.first_name %> <%= resident.middle_name %> <%= resident.last_name %> <%= resident.suffix %></strong></td>
+                                    <td><%= resident.birth_date ? resident.birth_date.toString().substring(0, 10) : '—' %></td>
+                                    <td><%= resident.email || '—' %></td>
+                                    <td><%= resident.contact_num || '—' %></td>
+                                    <td><%= resident.isActive === 1 ? 'Ongoing' : 'Ended' %></td>
+                                    <td>
+                                        <% if (resident.isDelinquent) { %>
+                                            <span class="badge badge-delinquent">Delinquent</span>
+                                        <% } else { %>
+                                            <span class="badge badge-good">Good Standing</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <button class="btn-icon"
+                                                data-id="<%= resident.resident_id %>"
+                                                data-personid="<%= resident.person_id %>"
+                                                data-name="<%= resident.first_name %> <%= resident.middle_name %> <%= resident.last_name %> <%= resident.suffix %>"
+                                                data-dob="<%= resident.birth_date ? resident.birth_date.toString().substring(0, 10) : '' %>"
+                                                data-email="<%= resident.email || '' %>"
+                                                data-phone="<%= resident.contact_num || '' %>"
+                                                data-residentstart="<%= resident.residency_start_date ? resident.residency_start_date.toString().substring(0,10) : '' %>"
+                                                data-residentend="<%= resident.residency_end_date ? resident.residency_end_date.toString().substring(0,10) : '' %>"
+                                                data-delinquent="<%= resident.isDelinquent ? '1' : '0' %>"
+                                                onclick="openViewModal(this)">
+                                            View info
+                                        </button>
+                                        <button class="btn-icon"
+                                                data-id="<%= resident.resident_id %>"
+                                                data-firstname="<%= resident.first_name %>"
+                                                data-lastname="<%= resident.last_name %>"
+                                                data-middlename="<%= resident.middle_name %>"
+                                                data-suffix="<%= resident.suffix %>"
+                                                data-dob="<%= resident.birth_date ? resident.birth_date.toString().substring(0, 10) : '' %>"
+                                                data-email="<%= resident.email || '' %>"
+                                                data-phone="<%= resident.contact_num || '' %>"
+                                                data-residentstart="<%= resident.residency_start_date ? resident.residency_start_date.toString().substring(0,10) : '' %>"
+                                                data-delinquent="<%= resident.isDelinquent ? '1' : '0' %>"
+                                                onclick="openEditModal(this)">
+                                            <i class="fa-solid fa-edit"></i>
+                                        </button>
+                                        <% if (resident.isActive) { %>
+                                            <button class="btn-icon"
+                                                    data-id="<%= resident.resident_id %>"
+                                                    onclick="openEndResidencyModal(this.dataset.id)">
+                                                End residency
+                                            </button>
+                                        <% } %>
+                                        <button class="btn-icon btn-icon-danger"
+                                                data-id="<%= resident.resident_id %>"
+                                                data-name="<%= resident.first_name %> <%= resident.last_name %>"
+                                                onclick="confirmDeleteResident(this.dataset.id, this.dataset.name)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── BOARD MEMBERS SECTION (hidden by default) ────────────────────── -->
+        <div id="boardMembersSection" style="display:none;">
+
+            <div class="bm-filter-bar">
+                <button class="bm-filter-btn bm-filter-active" data-filter="all"      onclick="filterBoardMembers('all')">All</button>
+                <button class="bm-filter-btn"                  data-filter="active"   onclick="filterBoardMembers('active')">Active</button>
+                <button class="bm-filter-btn"                  data-filter="inactive" onclick="filterBoardMembers('inactive')">Inactive</button>
+            </div>
+
+            <p class="boardMember-count">
+                Showing <strong id="boardMembersCountNumber"><%= boardMembers.length %></strong> board members
+            </p>
+
+            <div class="table-container">
+                <table class="data-table" id="boardTable">
+                    <thead>
+                        <tr>
+                            <th>Resident Name</th>
+                            <th>Position</th>
+                            <th>Email</th>
+                            <th>Contact #</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (boardMembers.length === 0) { %>
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    No board members found. Click "Add Board Member" to create one.
+                                </td>
+                            </tr>
+                        <% } else { %>
+                            <% boardMembers.forEach(bm => { %>
+                                <tr data-active="<%= bm.board_end_date ? 'inactive' : 'active' %>">
+                                    <td><strong><%= bm.first_name %> <%= bm.last_name %></strong></td>
+                                    <td>
+                                        <% (bm.position || '').split(',').forEach(pos => { %>
+                                            <span class="badge-position"><%= pos.trim() %></span>
+                                        <% }) %>
+                                    </td>
+                                    <td><%= bm.email || '—' %></td>
+                                    <td><%= bm.contact_num || '—' %></td>
+                                    <td><%= bm.board_start_date ? bm.board_start_date.toString().substring(0,10) : '—' %></td>
+                                    <td><%= bm.board_end_date ? bm.board_end_date.toString().substring(0,10) : 'Present' %></td>
+                                    <td>
+                                        <button class="btn-icon"
+                                            onclick="openBMEditModal(this)"
+                                            data-id="<%= bm.board_id %>"
+                                            data-position="<%= bm.position %>"
+                                            data-start="<%= bm.board_start_date ? bm.board_start_date.toString().substring(0,10) : '' %>"
+                                            data-end="<%= bm.board_end_date ? bm.board_end_date.toString().substring(0,10) : '' %>"
+                                            data-name="<%= bm.first_name %> <%= bm.last_name %>">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <% if (!bm.board_end_date) { %>
+                                            <button class="btn-icon"
+                                                onclick="openEndTermModal(this)"
+                                                data-id="<%= bm.board_id %>"
+                                                data-start="<%= bm.board_start_date ? bm.board_start_date.toString().substring(0,10) : '' %>"
+                                                data-name="<%= bm.first_name %> <%= bm.last_name %>">
+                                                End term
+                                            </button>
+                                        <% } %>
+                                        <button class="btn-icon btn-icon-danger"
+                                            onclick="confirmDeleteBM(this.dataset.id, this.dataset.name)"
+                                            data-id="<%= bm.board_id %>"
+                                            data-name="<%= bm.first_name %> <%= bm.last_name %>">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     RESIDENT MODALS
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="residentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add Resident</h2>
+            <button class="modal-close" onclick="closeModal('residentModal')">&times;</button>
+        </div>
+        <form id="residentForm" method="POST" action="/residents">
+            <input type="hidden" id="resident_id" name="resident_id">
+            <div class="modal-body">
+                <div class="form-section">
+                    <h3>Personal Information</h3>
+                    <hr>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required-label">First Name</label>
+                            <input type="text" id="firstName" name="first_name" required placeholder="e.g., Juan">
+                        </div>
+                        <div class="form-group">
+                            <label>Middle Name</label>
+                            <input type="text" id="middleName" name="middle_name" placeholder="e.g., Santos">
+                        </div>
+                        <div class="form-group">
+                            <label>Suffix</label>
+                            <input type="text" id="suffix" name="suffix" placeholder="e.g., Jr, Sr">
+                        </div>
+                        <div class="form-group">
+                            <label class="required-label">Last Name</label>
+                            <input type="text" id="lastName" name="last_name" required placeholder="e.g., Dela Cruz">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required-label">Phone Number</label>
+                            <input type="tel" id="phoneNumber" name="contact_num" required placeholder="e.g., 917-555-0123">
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="e.g., juan@gmail.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" id="dob" name="birth_date">
+                        </div>
+                        <div class="form-group">
+                            <label class="required-label">Residency Start Date</label>
+                            <input type="date" id="residency-start-date" name="residency_start_date" required>
+                        </div>
+                    </div>
+                    <div class="form-group" id="delinquentGroup" style="display:none;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="isDelinquent" name="isDelinquent" value="1">
+                            <span>Mark as Delinquent</span>
+                        </label>
+                        <small style="color:#888; font-size:12px; margin-top:4px; display:block;">
+                            Delinquent status is normally set automatically when a property has outstanding dues.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('residentModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Save Resident</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteResidentModal" class="modal">
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h2>Delete Resident</h2>
+            <button class="modal-close" onclick="closeModal('deleteResidentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteResidentName"></strong>?</p>
+            <p style="color:#dc3545;font-size:13px;margin-top:8px;font-weight:500;">This operation cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteResidentModal')">Cancel</button>
+            <form id="deleteResidentForm" method="POST">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="viewModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Resident Summary</h2>
+            <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="view-status-badge" style="margin-bottom:16px;"></div>
+
+            <h3>Personal Information</h3>
+            <hr>
+            <p><strong>Name:</strong> <span id="view-name">—</span></p>
+            <p><strong>Date of Birth:</strong> <span id="view-dob">—</span></p>
+            <p><strong>Email:</strong> <span id="view-email">—</span></p>
+            <p><strong>Phone:</strong> <span id="view-phone">—</span></p>
+
+            <h3 style="margin-top:16px;">Residential Information</h3>
+            <hr>
+            <p><strong>Residency Start Date:</strong> <span id="view-residency-start">—</span></p>
+            <p><strong>Residency End Date:</strong> <span id="view-residency-end">—</span></p>
+
+            <h3 style="margin-top:16px;">Outstanding Dues</h3>
+            <hr>
+            <div id="view-outstanding-section" style="margin-top:10px;">
+                <p style="color:#999;font-size:13px;">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="endResidencyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>End Residency</h2>
+            <button class="modal-close" onclick="closeModal('endResidencyModal')">&times;</button>
+        </div>
+        <form id="endResidencyForm" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Residency End Date *</label>
+                    <input type="date" id="residency-end-date" name="residency_end_date" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('endResidencyModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">End Residency</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     BOARD MEMBER MODALS
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="bmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="bmModalTitle">Add Board Member</h2>
+            <button class="modal-close" onclick="closeModal('bmModal')">&times;</button>
+        </div>
+        <form id="bmForm" method="POST" action="/boardMembers">
+            <input type="hidden" id="bm_board_id" name="board_id">
+            <div class="modal-body">
+                <div class="form-group" id="bmResidentPickerGroup">
+                    <label class="required-label">Resident</label>
+                    <div class="resident-search-wrap">
+                        <input type="text" id="bmResidentSearchInput" class="form-control"
+                            placeholder="Search resident..." autocomplete="off">
+                        <ul id="bmResidentDropdownList" class="resident-dropdown-list"></ul>
+                    </div>
+
+                    <input type="hidden" id="bm_resident_id" name="resident_id">
+                    <p id="bmResidentNameDisplay" class="resident-name-display" style="display:none;"></p>
+                </div>
+
+                <div class="form-group">
+                    <label class="required-label">Position(s)</label>
+                    <input type="hidden" id="bm_position" name="position">
+                    <div class="position-checkboxes">
+                        <label class="pos-check-label"><input type="checkbox" class="bm-pos-cb" value="President"> President</label>
+                        <label class="pos-check-label"><input type="checkbox" class="bm-pos-cb" value="Vice President"> Vice President</label>
+                        <label class="pos-check-label"><input type="checkbox" class="bm-pos-cb" value="Treasurer"> Treasurer</label>
+                        <label class="pos-check-label"><input type="checkbox" class="bm-pos-cb" value="Secretary"> Secretary</label>
+                        <label class="pos-check-label"><input type="checkbox" class="bm-pos-cb" value="Admin"> Admin</label>
+                        <label class="pos-check-label"><input type="checkbox" class="bm-pos-cb" value="Board Member"> Board Member</label>
+                    </div>
+                    <small id="bm_position_hint" style="color:#dc3545; font-size:12px; display:none;">Select at least one position.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="required-label">Term Start Date</label>
+                    <input type="date" id="bm_board_start_date" name="board_start_date" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('bmModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="bmSubmitBtn">Add Board Member</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="endTermModal" class="modal">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header">
+            <h2>End Term</h2>
+            <button class="modal-close" onclick="closeModal('endTermModal')">&times;</button>
+        </div>
+        <form id="endTermForm" method="POST">
+            <div class="modal-body">
+                <p>Ending term for <strong id="endTermName"></strong>.</p>
+                <div class="form-group" style="margin-top:16px;">
+                    <label>Term End Date *</label>
+                    <input type="date" id="bm_end_date" name="board_end_date" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('endTermModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteBMModal" class="modal">
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h2>Delete Board Member</h2>
+            <button class="modal-close" onclick="closeModal('deleteBMModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteBMName"></strong>?</p>
+            <p style="color:#dc3545;font-size:13px;margin-top:8px;font-weight:500;">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteBMModal')">Cancel</button>
+            <form id="deleteBMForm" method="POST">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Resident data for board member search dropdown -->
+<script id="residentData" type="application/json"><%- JSON.stringify(residents.map(r => ({ resident_id: r.resident_id, full_name: r.first_name + ' ' + r.last_name }))) %></script>
+
+<script src="/js/sidebar.js"></script>
+<script>
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+let boardMembersMode = false;
+
+function switchTab(tab) {
+    boardMembersMode = tab === 'boardMembers';
+
+    document.getElementById('residentsSection').style.display    = boardMembersMode ? 'none' : '';
+    document.getElementById('boardMembersSection').style.display = boardMembersMode ? '' : 'none';
+
+    document.getElementById('tabResidents').classList.toggle('tab-active',    !boardMembersMode);
+    document.getElementById('tabBoardMembers').classList.toggle('tab-active',  boardMembersMode);
+    document.getElementById('btnAddResident').style.display    = boardMembersMode ? 'none' : '';
+    document.getElementById('btnAddBoardMember').style.display = boardMembersMode ? '' : 'none';
+
+    document.getElementById('pageTitle').textContent    = boardMembersMode ? 'Board Members' : 'Residents';
+    document.getElementById('pageSubtitle').textContent = boardMembersMode
+        ? 'View, add, edit, and manage board members'
+        : 'View, add, edit, and manage resident information';
+
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').placeholder = boardMembersMode
+        ? 'Search by name, position, or email...'
+        : 'Search by name, email, status...';
+
+    if (boardMembersMode) filterBoardMembers('all');
+}
+
+let resCurrentFilter = 'all';
+
+function filterResidents(filter) {
+    resCurrentFilter = filter;
+    document.querySelectorAll('.bm-filter-btn[data-filter]').forEach(btn => {
+        if (btn.closest('#residentsSection')) {
+            btn.classList.toggle('bm-filter-active', btn.dataset.filter === filter);
+        }
+    });
+    applyResidentFilter();
+}
+
+function applyResidentFilter() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#residentTable tbody tr[data-status]').forEach(row => {
+        const matchesFilter = resCurrentFilter === 'all' || row.dataset.status === resCurrentFilter;
+        const matchesSearch = !q || row.textContent.toLowerCase().includes(q);
+        const show = matchesFilter && matchesSearch;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('residentCountNumber').textContent = visible;
+}
+
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    if (boardMembersMode) {
+        let visible = 0;
+        document.querySelectorAll('#boardTable tbody tr[data-active]').forEach(row => {
+            const matchesFilter = bmCurrentFilter === 'all' || row.dataset.active === bmCurrentFilter;
+            const matchesSearch = !q || row.textContent.toLowerCase().includes(q);
+            const show = matchesFilter && matchesSearch;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        document.getElementById('boardMembersCountNumber').textContent = visible;
+    } else {
+        applyResidentFilter();
+    }
+}
+
+// ── Resident modals ──────────────────────────────────────────────────────────
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'Add New Resident';
+    document.getElementById('submitBtn').textContent  = 'Add Resident';
+    document.getElementById('residentForm').action    = '/residents';
+    document.getElementById('residentForm').reset();
+    document.getElementById('delinquentGroup').style.display = 'none';
+    document.getElementById('residentModal').classList.add('active');
+}
+
+function openEditModal(button) {
+    document.getElementById('modalTitle').textContent = 'Edit Resident';
+    document.getElementById('submitBtn').textContent  = 'Save Changes';
+    document.getElementById('residentForm').action    = '/residents/' + button.dataset.id + '/update';
+    document.getElementById('resident_id').value      = button.dataset.id;
+    document.getElementById('firstName').value        = button.dataset.firstname;
+    document.getElementById('lastName').value         = button.dataset.lastname;
+    document.getElementById('middleName').value       = button.dataset.middlename;
+    document.getElementById('suffix').value           = button.dataset.suffix;
+    document.getElementById('dob').value              = button.dataset.dob;
+    document.getElementById('email').value            = button.dataset.email;
+    document.getElementById('phoneNumber').value      = button.dataset.phone;
+    document.getElementById('residency-start-date').value = button.dataset.residentstart;
+    // Show and populate the delinquent toggle only when editing
+    document.getElementById('delinquentGroup').style.display = '';
+    document.getElementById('isDelinquent').checked = button.dataset.delinquent === '1';
+    document.getElementById('residentModal').classList.add('active');
+}
+
+function openViewModal(button) {
+    document.getElementById('view-name').textContent            = button.dataset.name || '—';
+    document.getElementById('view-dob').textContent             = button.dataset.dob  || '—';
+    document.getElementById('view-email').textContent           = button.dataset.email || '—';
+    document.getElementById('view-phone').textContent           = button.dataset.phone || '—';
+    document.getElementById('view-residency-start').textContent = button.dataset.residentstart || '—';
+    document.getElementById('view-residency-end').textContent   = button.dataset.residentend   || 'Present';
+
+    const isDelinquent = button.dataset.delinquent === '1';
+    document.getElementById('view-status-badge').innerHTML = isDelinquent
+        ? '<span class="badge badge-delinquent"><i class="fa-solid fa-triangle-exclamation"></i> Delinquent</span>'
+        : '<span class="badge badge-good"><i class="fa-solid fa-circle-check"></i> Good Standing</span>';
+
+    const outEl = document.getElementById('view-outstanding-section');
+    outEl.innerHTML = '<p style="color:#999;font-size:13px;">Loading...</p>';
+
+    const _personId = button.dataset.personid;
+    fetch(`/residents/${button.dataset.id}/outstanding`)
+        .then(r => r.json())
+        .then(props => {
+            if (!props.length) {
+                outEl.innerHTML = '<p style="color:#666;font-size:13px;">No outstanding dues.</p>';
+                return;
+            }
+            outEl.innerHTML = props.map(p => `
+                <a href="/dues/outstanding?property_id=${p.property_id}&person_id=${_personId}" class="outstanding-item">
+                    <div class="outstanding-item-info">
+                        <span class="outstanding-item-address">Lot ${p.lot_number} ${p.street_name}</span>
+                        <span class="outstanding-item-type">${p.property_type}</span>
+                    </div>
+                    <div class="outstanding-item-amount">
+                        ₱${parseFloat(p.outstandingBalance).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </a>
+            `).join('');
+        })
+        .catch(() => {
+            outEl.innerHTML = '<p style="color:#dc3545;font-size:13px;">Failed to load outstanding dues.</p>';
+        });
+
+    document.getElementById('viewModal').classList.add('active');
+}
+
+function openEndResidencyModal(id) {
+    document.getElementById('endResidencyForm').action = '/residents/' + id + '/endResidency';
+    document.getElementById('endResidencyModal').classList.add('active');
+}
+
+function confirmDeleteResident(id, name) {
+    document.getElementById('deleteResidentName').textContent = name;
+    document.getElementById('deleteResidentForm').action      = '/residents/' + id + '/delete';
+    document.getElementById('deleteResidentModal').classList.add('active');
+}
+
+// ── Board member modals ──────────────────────────────────────────────────────
+const allResidents      = JSON.parse(document.getElementById('residentData').textContent);
+const bmSearchInput     = document.getElementById('bmResidentSearchInput');
+const bmDropdownList    = document.getElementById('bmResidentDropdownList');
+const bmResidentIdInput = document.getElementById('bm_resident_id');
+
+bmSearchInput.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    bmResidentIdInput.value = '';
+    bmDropdownList.innerHTML = '';
+    if (!q) { bmDropdownList.style.display = 'none'; return; }
+
+    const matches = allResidents.filter(r => r.full_name.toLowerCase().includes(q));
+    if (!matches.length) { bmDropdownList.style.display = 'none'; return; }
+
+    matches.forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = r.full_name;
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            bmSearchInput.value     = r.full_name;
+            bmResidentIdInput.value = r.resident_id;
+            bmDropdownList.style.display = 'none';
+        });
+        bmDropdownList.appendChild(li);
+    });
+    bmDropdownList.style.display = 'block';
+});
+
+bmSearchInput.addEventListener('blur', () => {
+    setTimeout(() => { bmDropdownList.style.display = 'none'; }, 150);
+});
+
+function setBMPositionCheckboxes(positionStr) {
+    const active = (positionStr || '').split(',').map(s => s.trim());
+    document.querySelectorAll('.bm-pos-cb').forEach(cb => {
+        cb.checked = active.includes(cb.value);
+    });
+}
+
+function openBMAddModal() {
+    document.getElementById('bmModalTitle').textContent = 'Add Board Member';
+    document.getElementById('bmSubmitBtn').textContent  = 'Add Board Member';
+    document.getElementById('bmForm').action            = '/boardMembers';
+    document.getElementById('bmForm').reset();
+    document.getElementById('bm_board_id').value        = '';
+    document.getElementById('bm_position').value        = '';
+    document.getElementById('bm_position_hint').style.display = 'none';
+    bmResidentIdInput.value = '';
+    bmSearchInput.value     = '';
+    document.getElementById('bmResidentPickerGroup').style.display = '';
+    document.getElementById('bmResidentSearchInput').style.display = '';
+    bmSearchInput.required  = true;
+    document.getElementById('bmResidentNameDisplay').style.display = 'none';
+    setBMPositionCheckboxes('');
+    document.getElementById('bmModal').classList.add('active');
+}
+
+function openBMEditModal(btn) {
+    document.getElementById('bmModalTitle').textContent = 'Edit Board Member';
+    document.getElementById('bmSubmitBtn').textContent  = 'Save Changes';
+    document.getElementById('bmForm').action            = '/boardMembers/' + btn.dataset.id + '/update';
+    document.getElementById('bm_board_id').value        = btn.dataset.id;
+
+    document.getElementById('bmResidentSearchInput').style.display = 'none';
+    bmSearchInput.required = false;
+    const nameDisplay = document.getElementById('bmResidentNameDisplay');
+    nameDisplay.textContent = btn.dataset.name;
+    nameDisplay.style.display = 'block';
+
+    setBMPositionCheckboxes(btn.dataset.position);
+    document.getElementById('bm_position_hint').style.display = 'none';
+    document.getElementById('bm_board_start_date').value = btn.dataset.start;
+    document.getElementById('bmModal').classList.add('active');
+}
+
+document.getElementById('bmForm').addEventListener('submit', function(e) {
+    const checked = [...document.querySelectorAll('.bm-pos-cb:checked')].map(cb => cb.value);
+    if (!checked.length) {
+        e.preventDefault();
+        document.getElementById('bm_position_hint').style.display = 'block';
+        return;
+    }
+    document.getElementById('bm_position').value = checked.join(',');
+});
+
+// ── Board member filter ──────────────────────────────────────────────────────
+let bmCurrentFilter = 'all';
+
+function filterBoardMembers(filter) {
+    bmCurrentFilter = filter;
+
+    document.querySelectorAll('.bm-filter-btn').forEach(btn => {
+        btn.classList.toggle('bm-filter-active', btn.dataset.filter === filter);
+    });
+
+    const rows = document.querySelectorAll('#boardTable tbody tr[data-active]');
+    let visible = 0;
+    rows.forEach(row => {
+        const show = filter === 'all' || row.dataset.active === filter;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('boardMembersCountNumber').textContent = visible;
+}
+
+function openEndTermModal(btn) {
+    document.getElementById('endTermName').textContent = btn.dataset.name;
+    document.getElementById('endTermForm').action      = '/boardMembers/' + btn.dataset.id + '/end-term';
+    const endInput = document.getElementById('bm_end_date');
+    endInput.value = '';
+    endInput.min   = btn.dataset.start || '';
+    document.getElementById('endTermModal').classList.add('active');
+}
+
+function confirmDeleteBM(id, name) {
+    document.getElementById('deleteBMName').textContent = name;
+    document.getElementById('deleteBMForm').action      = '/boardMembers/' + id + '/delete';
+    document.getElementById('deleteBMModal').classList.add('active');
+}
+
+// ── Shared ───────────────────────────────────────────────────────────────────
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+window.onclick = function (event) {
+    ['residentModal','deleteResidentModal','viewModal','endResidencyModal',
+     'bmModal','endTermModal','deleteBMModal'].forEach(id => {
+        if (event.target === document.getElementById(id)) closeModal(id);
+    });
+};
+
+setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(a => a.style.display = 'none');
+}, 4000);
+
+// Auto-activate board members tab if redirected back from a board member action
+if (new URLSearchParams(window.location.search).get('view') === 'boardMembers') {
+    switchTab('boardMembers');
+}
+
+// Deep-link: auto-open a resident's view modal when ?view_resident=<id> is in the URL
+const _deepViewId = new URLSearchParams(window.location.search).get('view_resident');
+if (_deepViewId) {
+    const _viewBtn = document.querySelector(`#residentTable button[data-id="${_deepViewId}"][data-name]`);
+    if (_viewBtn) openViewModal(_viewBtn);
+}
+</script>

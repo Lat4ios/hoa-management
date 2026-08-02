@@ -1,0 +1,612 @@
+<!-- ============================================================
+     VEHICLES VIEW — STUB
+     Layout: views/layouts/main.ejs (has sidebar)
+     Controller: controllers/vehicleController.js
+     TODO (SPRINT 2+): BUILD THIS PAGE (table, register/edit/delete)
+     ============================================================ -->
+
+<div class="main-wrapper"> 
+    <div class="sidebar-open nav-item"> 
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Vehicles</h1>
+            <p class="page-subtitle">Manage registered vehicles</p>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <div id="vehicleAlert" class="alert" style="display:none;"></div>
+
+        <div class="search-bar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="searchInput"
+                placeholder="Search by plate, owner, or type ...">
+            </div>
+
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fa-solid fa-plus"></i> Add Vehicle
+            </button>
+        </div>
+
+        <p class="vehicle-count">
+            Showing <strong id="vehicleCountNumber"><%= vehicles.length %></strong> vehicles
+        </p>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Plate Number</th>
+                        <th>Type</th>
+                        <th>Make & Model</th>
+                        <th>Color</th>
+                        <th>Sticker Year</th>
+                        <th>Status</th>
+                        <th>Owner/s</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (vehicles.length === 0) { %>
+                        <tr><td colspan="7" class="empty-state">No vehicles registered yet.</td></tr>
+                    <% } else { %>
+                        <% vehicles.forEach(function(vehicle) { %>
+                            <tr>
+                                <td><span class="plate-number"><%= vehicle.plate_number || 'N/A' %></span></td>
+                                <td><%= vehicle.type %></td>
+                                <td><%= vehicle.make %> <%= vehicle.model %></td>
+                                <td><%= vehicle.color %></td>
+                                
+                                <td>
+                                    <% if (!vehicle.sticker_year) { %>
+                                        <span class="sticker-badge sticker-none">None</span>
+                                    <% } else if (vehicle.sticker_year >= 2026) { %>
+                                        <span class="sticker-badge sticker-valid"><%= vehicle.sticker_year %></span>
+                                    <% } else { %>
+                                        <span class="sticker-badge sticker-expired"><%= vehicle.sticker_year %></span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (vehicle.status === 'Active') { %>
+                                        <span style="color: green; font-weight: bold;">Active</span>
+                                    <% } else { %>
+                                        <span style="color: red; font-weight: bold;">Inactive</span>
+                                    <% } %>
+                                </td>
+                                <td><%= vehicle.homeowners || 'Unassigned' %></td>
+                                <td style="display: flex; gap: 10px;">
+                                    <button type="button" class="btn-icon" onclick="openEditModal('<%= vehicle.vehicle_id %>', '<%= vehicle.type %>', '<%= vehicle.plate_number %>', '<%= vehicle.make %>', '<%= vehicle.model %>', '<%= vehicle.color %>', '<%= vehicle.sticker_year %>', '<%= vehicle.resident_ids || "" %>', '<%= vehicle.raw_status %>')">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </button>
+
+                                    <button class="btn-icon btn-icon-danger"
+                                            onclick="confirmDelete(this.dataset.id, this.dataset.label)"
+                                            data-id="<%= vehicle.vehicle_id %>"
+                                            data-label="<%= vehicle.plate_number || vehicle.make + ' ' + vehicle.model %>">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- ADD VEHICLE MODAL-->
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Vehicle</h2>
+                <button class="modal-close" onclick="closeAddModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="vehicleForm" action="/vehicles/register" method="POST">
+                    
+                    <div class="form-group">
+                        <label class="required-label">Vehicle Type</label>
+                        <select id="add_type" name="type" class="form-control" style="width: 100%; padding: 8px;" required>
+                            <option value="">Select Vehicle Type</option>
+                            <option value="Car">Car</option>
+                            <option value="Motorcycle">Motorcycle</option>
+                            <option value="E-Bike">E-Bike</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required-label">Plate Number</label>
+                        <input type="text" name="plate_number" placeholder="ABC 1234" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required-label">Make</label>
+                            <input type="text" name="make" placeholder="e.g., Honda" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="required-label">Model</label>
+                            <input type="text" name="model" placeholder="e.g., NSX" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required-label">Color</label>
+                            <input type="text" name="color" placeholder="e.g., Red" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Sticker Year</label>
+                            <input type="number" name="sticker_year" placeholder="2026">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label class="required-label">Status</label>
+                        <select name="status" class="form-control" required>
+                            <option value="Active" selected>Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Owners</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <div style="position: relative; flex: 1;">
+                                <input type="text" id="add_resident_search" class="form-control" placeholder="Search resident name..." autocomplete="off" style="width: 100%; padding: 8px;">
+                                
+                                <ul id="add_dropdown_list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; z-index: 1000; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+                                
+                                <select id="add_resident_select" style="display: none;">
+                                    <option value="">Select Resident/s</option>
+                                    <% if (locals.residents) { %>
+                                        <% residents.forEach(resident => { %>
+                                            <option value="<%= resident.resident_id %>"><%= resident.full_name %></option>
+                                        <% }); %>
+                                    <% } %>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="add_resident_tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; padding: 10px; border: 1px dashed #ccc; border-radius: 4px;"></div>
+
+                        <div id="add_hidden_inputs"></div>
+                    </div>
+
+                    <div id="addVehicleError" class="modal-form-error" style="display:none;"></div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Vehicle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT VEHICLE MODAL-->
+<div id="editVehicleModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Vehicle Details</h2>
+            <button class="modal-close" onclick="document.getElementById('editVehicleModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editVehicleForm" method="POST">
+                <div class="form-group">
+                    <label class="required-label">Plate Number</label>
+                    <input type="text" id="edit_plate_number" name="plate_number" required>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="required-label">Vehicle Type</label>
+                    <select id="edit_type" name="type" class="form-control" style="width: 100%; padding: 8px;" required>
+                        <option value="">Select Vehicle Type</option>
+                        <option value="Car">Car</option>
+                        <option value="Motorcycle">Motorcycle</option>
+                        <option value="E-Bike">E-Bike</option>
+                        <option value="Commercial">Commercial</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Owners</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="position: relative; flex: 1;">
+                            <input type="text" id="edit_resident_search" class="form-control" placeholder="Search resident name..." autocomplete="off" style="width: 100%; padding: 8px;">
+                            
+                            <ul id="edit_dropdown_list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; z-index: 1000; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+                            
+                            <select id="edit_resident_select" style="display: none;">
+                                <option value="">Select Resident/s</option>
+                                <% if (locals.residents) { %>
+                                    <% residents.forEach(resident => { %>
+                                        <option value="<%= resident.resident_id %>"><%= resident.full_name %></option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="edit_resident_tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; padding: 10px; border: 1px dashed #ccc; border-radius: 4px;"></div>
+                    
+                    <div id="edit_hidden_inputs"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required-label">Make</label>
+                        <input type="text" id="edit_make" name="make" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="required-label">Model</label>
+                        <input type="text" id="edit_model" name="model" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Color</label>
+                        <input type="text" id="edit_color" name="color" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sticker Year</label>
+                        <input type="number" id="edit_sticker_year" name="sticker_year">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="required-label">Status</label>
+                    <select id="edit_status" name="status" class="form-control" required>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                
+                <div id="editVehicleError" class="modal-form-error" style="display:none;"></div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('editVehicleModal').classList.remove('active')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ── DELETE MODAL ─────────────────────────────────────────────────────────── -->
+<div id="deleteVehicleModal" class="modal">
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h2>Delete Vehicle</h2>
+            <button class="modal-close" onclick="document.getElementById('deleteVehicleModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteVehicleName"></strong>?</p>
+            <p style="color:#dc3545;font-size:13px;margin-top:8px;font-weight:500;">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('deleteVehicleModal').classList.remove('active')">Cancel</button>
+            <form id="deleteVehicleForm" method="POST" style="margin:0;">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script id="residentData" type="application/json">
+    <%- JSON.stringify(locals.residents || []) %>
+</script>
+
+<script>
+    function confirmDelete(id, label) {
+        document.getElementById('deleteVehicleName').textContent = label;
+        document.getElementById('deleteVehicleForm').action = '/vehicles/delete/' + id;
+        document.getElementById('deleteVehicleModal').classList.add('active');
+    }
+
+    window.onclick = function(event) {
+        const m = document.getElementById('deleteVehicleModal');
+        if (event.target === m) m.classList.remove('active');
+    };
+
+    function addResidentToForm(mode){
+        const selectBox = document.getElementById(`${mode}_resident_select`);
+        const id = selectBox.value;
+        const name = selectBox.options[selectBox.selectedIndex]?.text;
+
+        if (!id) return;
+
+        const tagsContainer = document.getElementById(`${mode}_resident_tags`);
+        const hiddenContainer = document.getElementById(`${mode}_hidden_inputs`);
+
+        if (document.getElementById(`${mode}_hidden_${id}`)){
+            alert('This resident has already been added.');
+            return;
+        }
+
+        const tag = document.createElement('div');
+
+        tag.id = `${mode}_tag_${id}`;
+        tag.style.cssText = "background: #e0f7fa; color: #006064; padding: 4px 10px; border-radius: 15px; display: flex; align-items: center; gap: 8px; font-size: 14px;";
+        tag.innerHTML = `
+            ${name} 
+            <button type="button" style="border: none; background: transparent; color: red; cursor: pointer; font-weight: bold;" onclick="removeResidentFromForm('${mode}', '${id}')">&times;</button>
+        `;
+        tagsContainer.appendChild(tag);
+
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = "hidden";
+        hiddenInput.name = "resident_ids";
+        hiddenInput.value = id;
+        hiddenInput.id = `${mode}_hidden_${id}`;
+        hiddenContainer.appendChild(hiddenInput);
+        
+        selectBox.value = ''; 
+    }
+
+    function removeResidentFromForm(mode, id){
+        document.getElementById(`${mode}_tag_${id}`).remove();
+        document.getElementById(`${mode}_hidden_${id}`).remove();
+    }
+
+    function openEditModal(id, type, plate_number, make, model, color, sticker_year, resident_ids_string, raw_status){
+        
+        document.getElementById('editVehicleForm').action = '/vehicles/update/' + id;
+        
+        document.getElementById('edit_type').value = type || '';
+        document.getElementById('edit_plate_number').value = plate_number || '';
+        document.getElementById('edit_make').value = make || '';
+        document.getElementById('edit_model').value = model || '';
+        document.getElementById('edit_color').value = color || '';
+        document.getElementById('edit_sticker_year').value = sticker_year || '';
+        
+        document.getElementById('edit_resident_tags').innerHTML = '';
+        document.getElementById('edit_hidden_inputs').innerHTML = '';
+        document.getElementById('edit_status').value = raw_status || 'Active';
+        
+        if(resident_ids_string){
+            const selectedIds = resident_ids_string.split(',');
+            const selectBox = document.getElementById('edit_resident_select');
+            
+            selectedIds.forEach(ownerId => {
+                const optionExists = selectBox.querySelector(`option[value="${ownerId}"]`);
+                if(optionExists){
+                    selectBox.value = ownerId;
+                    addResidentToForm('edit');
+                }
+            });
+        }
+        
+        document.getElementById('editVehicleModal').classList.add('active');
+    }
+</script>
+
+<script> // search functionality
+    document.addEventListener('DOMContentLoaded', () =>{
+        const searchInput = document.getElementById('searchInput');
+        const vehicleCountDisplay = document.getElementById('vehicleCountNumber'); 
+        const tableBody = document.querySelector('.data-table tbody');
+        
+        const rows = tableBody.querySelectorAll('tr:not(:has(.empty-state))'); 
+
+        if(searchInput && rows.length > 0){
+            searchInput.addEventListener('input', function(){
+                const searchTerm = this.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                rows.forEach(row =>{
+                    const rowText = row.textContent.toLowerCase();
+                    
+                    if (rowText.includes(searchTerm)){
+                        row.style.display = ''; 
+                        visibleCount++;
+                    }
+                    else{
+                        row.style.display = 'none'; 
+                    }
+                });
+
+                if(vehicleCountDisplay) {
+                    vehicleCountDisplay.textContent = visibleCount;
+                }
+            });
+        }
+    });
+</script>
+
+<script>
+    const allResidents = JSON.parse(document.getElementById('residentData').textContent || '[]');
+
+    function setupClientSideSearch(mode) {
+        const searchInput = document.getElementById(`${mode}_resident_search`);
+        const dropdownList = document.getElementById(`${mode}_dropdown_list`);
+        const hiddenSelect = document.getElementById(`${mode}_resident_select`);
+
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function () {
+            const query = this.value.trim().toLowerCase();
+            dropdownList.innerHTML = '';
+
+            if (!query) { dropdownList.style.display = 'none'; return; }
+
+            const matches = allResidents.filter(r => r.full_name.toLowerCase().includes(query));
+            
+            if (matches.length === 0) { 
+                dropdownList.innerHTML = '<li style="padding: 8px; color: #888;">No residents found</li>';
+                dropdownList.style.display = 'block'; 
+                return; 
+            }
+
+            matches.forEach(r => {
+                const li = document.createElement('li');
+                li.style.cssText = "padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;";
+                li.textContent = r.full_name;
+                
+                li.onmouseover = () => li.style.backgroundColor = '#f5f5f5';
+                li.onmouseout = () => li.style.backgroundColor = 'transparent';
+
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault(); 
+                    
+                    hiddenSelect.value = r.resident_id; 
+                    
+                    addResidentToForm(mode);
+                    
+                    searchInput.value = ''; 
+                    dropdownList.style.display = 'none';
+                });
+                
+                dropdownList.appendChild(li);
+            });
+            
+            dropdownList.style.display = 'block';
+        });
+
+        searchInput.addEventListener('blur', () => {
+            setTimeout(() => { dropdownList.style.display = 'none'; }, 150);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupClientSideSearch('add');
+        setupClientSideSearch('edit');
+    });
+</script>
+
+<script>
+    function openAddModal() {
+        document.getElementById('vehicleForm').reset();
+        document.getElementById('add_resident_tags').innerHTML = '';
+        document.getElementById('add_hidden_inputs').innerHTML = '';
+        document.getElementById('vehicleModal').classList.add('active');
+    }
+
+    function closeAddModal() {
+        document.getElementById('vehicleModal').classList.remove('active');
+        document.getElementById('vehicleForm').reset();
+        document.getElementById('add_resident_tags').innerHTML = '';
+        document.getElementById('add_hidden_inputs').innerHTML = '';
+    }
+</script>
+
+<script>
+    function showVehicleBanner(isSuccess, message) {
+        const banner = document.getElementById('vehicleAlert');
+        banner.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-error');
+        banner.innerHTML = `<i class="fa-solid ${isSuccess ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ${message}`;
+        banner.style.display = 'flex';
+        setTimeout(() => { banner.style.display = 'none'; }, 4000);
+    }
+
+    function showModalError(id, msg) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${msg}`;
+        el.style.display = 'flex';
+    }
+
+    function clearModalError(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = '';
+        el.style.display = 'none';
+    }
+
+    function validateStickerYear(value) {
+        if (!value) return null;
+        const yr = parseInt(value, 10);
+        if (!/^\d{4}$/.test(String(value).trim()) || yr < 1990 || yr > 2099) {
+            return 'Sticker year must be a valid 4-digit year between 1990 and 2099.';
+        }
+        return null;
+    }
+
+    function postForm(url, formOrData) {
+        const body = new URLSearchParams(formOrData instanceof HTMLFormElement ? new FormData(formOrData) : formOrData);
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        }).then(r => r.json());
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // ── Add form ──────────────────────────────────────────────────────────
+        document.getElementById('vehicleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearModalError('addVehicleError');
+
+            const yrErr = validateStickerYear(this.querySelector('[name="sticker_year"]').value);
+            if (yrErr) { showModalError('addVehicleError', yrErr); return; }
+
+            postForm(this.action, this)
+                .then(data => {
+                    if (data.success) {
+                        closeAddModal();
+                        showVehicleBanner(true, data.message);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showModalError('addVehicleError', data.message);
+                    }
+                })
+                .catch(() => showModalError('addVehicleError', 'An unexpected error occurred. Please try again.'));
+        });
+
+        // ── Edit form ─────────────────────────────────────────────────────────
+        document.getElementById('editVehicleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearModalError('editVehicleError');
+
+            const yrErr = validateStickerYear(document.getElementById('edit_sticker_year').value);
+            if (yrErr) { showModalError('editVehicleError', yrErr); return; }
+
+            postForm(this.action, this)
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('editVehicleModal').classList.remove('active');
+                        showVehicleBanner(true, data.message);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showModalError('editVehicleError', data.message);
+                    }
+                })
+                .catch(() => showModalError('editVehicleError', 'An unexpected error occurred. Please try again.'));
+        });
+
+        // ── Delete form ───────────────────────────────────────────────────────
+        document.getElementById('deleteVehicleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            postForm(this.action, {})
+                .then(data => {
+                    document.getElementById('deleteVehicleModal').classList.remove('active');
+                    showVehicleBanner(data.success, data.message);
+                    if (data.success) setTimeout(() => location.reload(), 1500);
+                })
+                .catch(() => showVehicleBanner(false, 'An unexpected error occurred. Please try again.'));
+        });
+    });
+</script>
+
+<script src="/js/sidebar.js"></script>

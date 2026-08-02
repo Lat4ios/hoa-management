@@ -1,0 +1,43 @@
+<!-- ============================================================
+     LOGIN VIEW
+     Layout: views/layouts/auth.ejs (no sidebar)
+     Route:  GET /login  (routes/index.js)
+     SPRINT 2+: Wire form POST to /login with session/auth logic.
+     ============================================================ -->
+<link rel="stylesheet" href="/css/login.css">
+
+<div class="login-container">
+
+    <div class="left-panel">
+        <img src="/images/HOA LOGO.png" alt="HOA Logo">
+    </div>
+
+    <div class="right-panel">
+        <h1>Welcome!</h1>
+        <p>Please sign in to your HOA account</p>
+
+        <!-- TODO (SPRINT 2+): CHANGE action TO POST /login AND ADD SESSION HANDLING -->
+        <form action="/login" method="POST">
+
+            <div class="username">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter your username">
+            </div>
+
+            <div class="password">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password">
+            </div>
+
+            <!-- TODO (SPRINT 2+): CONVERT TO <button type="submit"> WITH ACTUAL AUTH -->
+            <a href="/dashboard" class="signin-button">Sign In</a>
+
+            <div class="login-help">
+                Having troubles logging in or don't have an account yet?
+                <a href="/hoa-admin">Contact the HOA Admin here.</a>
+            </div>
+
+        </form>
+    </div>
+
+</div>

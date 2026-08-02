@@ -1,0 +1,28 @@
+<!-- ============================================================
+     HOA ADMIN CONTACT VIEW
+     Layout: views/layouts/auth.ejs (no sidebar)
+     Route:  GET /hoa-admin  (routes/index.js)
+     SPRINT 2+: Make email/phone editable only when logged in as admin.
+     ============================================================ -->
+<link rel="stylesheet" href="/css/hoa-admin.css">
+
+<div class="hoa-admin-container">
+    <h1>HOA Admin</h1>
+
+    <div class="contact-info">
+        <p>If you are having trouble logging in, please contact the HOA Admin at:</p>
+
+        <div class="email">
+            <label>Email:</label>
+            <!-- TODO (SPRINT 2+): PULL FROM DB / ENV CONFIG -->
+            <span>mgvphasev@gmail.com</span>
+        </div>
+
+        <div class="phone">
+            <label>Phone:</label>
+            <span>0975 984 4413</span>
+        </div>
+    </div>
+
+    <a href="/login" class="back-button">Back to Login</a>
+</div>

@@ -1,0 +1,163 @@
+<%
+    const fmt = (n) => {
+        const num = parseFloat(n) || 0;
+        if (num >= 1000000) return '₱' + (num / 1000000).toFixed(2) + 'M';
+        if (num >= 1000)    return '₱' + (num / 1000).toFixed(1)    + 'K';
+        return '₱' + num.toFixed(2);
+    };
+%>
+
+<div class="main-wrapper"> 
+    <div class="sidebar-open nav-item"> 
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left"> 
+            <h1 class="page-title">Finance Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <!-- TODO (SPRINT 2+): SHOW LOGGED-IN USER NAME AND ROLE -->
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <section class="finance-header">
+            <div class="finance-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Search transactions..." id="transactionSearch">
+            </div>
+
+            <div class="finance-actions">
+                <button class="btn btn-secondary">
+                    <i class="fa-solid fa-file-arrow-down"></i>&nbsp; Export Report
+                </button>
+
+                <button onclick="window.location.href='/payments';" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i>&nbsp; Add Payment
+                </button>
+            </div>
+        </section>
+
+        <section class="finance-summary">
+            <div class="card finance-card">
+                <div class="finance-card-content">
+                    <p class="finance-card-title">Total Collected (YTD)</p>
+                    <h2 class="finance-card-value"><%= fmt(stats.ytdCollected) %></h2>
+                </div>
+
+                <div class="finance-card-icon green">
+                    <i class="ph ph-trend-up"></i>
+                </div>
+            </div>
+
+            <div class="card finance-card">
+                <div class="finance-card-content">
+                    <p class="finance-card-title">Total Collected (This Month)</p>
+                    <h2 class="finance-card-value"><%= fmt(stats.monthlyCollected) %></h2>
+                </div>
+
+                <div class="finance-card-icon green">
+                    <i class="ph ph-hand-coins"></i>
+                </div>
+            </div>
+
+            <div class="card finance-card">
+                <div class="finance-card-content">
+                    <p class="finance-card-title">Outstanding Dues</p>
+                    <h2 class="finance-card-value"><%= fmt(stats.outstandingDues) %></h2>
+                </div>
+
+                <div class="finance-card-icon red">
+                    <i class="ph ph-trend-down"></i>
+                </div>
+            </div>
+
+        </section>
+        
+        <section class="summary-cards row2">
+            <div class="card stat-card">
+                <div class="stat-icon green"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= fmt(stats.totalCollected) %></span>
+                    <span class="stat-label">Total Collected</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon yellow"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= fmt(stats.totalUncollected) %></span>
+                    <span class="stat-label">Total Uncollected</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon red"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value"><%= stats.pendingCount %></span>
+                    <span class="stat-label">Pending Payments</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header">
+                <h2>Recent Transactions</h2>
+                <a href="/payments" class="view-all">View All →</a>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Resident</th>
+                        <th>Purpose</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <% if (recentTransactions.length === 0) { %>
+                        <tr>
+                            <td colspan="5" style="text-align:center; color:#aaa; padding:24px;">No transactions recorded yet.</td>
+                        </tr>
+                    <% } else { %>
+                        <% recentTransactions.forEach(tx => {
+                            const paid     = parseFloat(tx.amount_paid)     || 0;
+                            const expected = parseFloat(tx.amount_expected)  || 0;
+                            let status = 'Unpaid', cls = 'status-unpaid';
+                            if (paid >= expected && paid > 0) { status = 'Paid';    cls = 'status-paid'; }
+                            else if (paid > 0)                { status = 'Partial'; cls = 'status-partial'; }
+                            const dateFmt = tx.date_paid
+                                ? new Date(tx.date_paid).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+                                : '—';
+                        %>
+                        <tr>
+                            <td><%= dateFmt %></td>
+                            <td>
+                                <strong><%= tx.payer_name || '—' %></strong><br>
+                                <small><%= tx.address || '—' %></small>
+                            </td>
+                            <td><%= tx.purpose %></td>
+                            <td>₱<%= paid.toLocaleString('en-PH', { minimumFractionDigits: 2 }) %></td>
+                            <td><span class="payment-status <%= cls %>"><%= status %></span></td>
+                        </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</div>
+
+<script src="/js/sidebar.js"></script>

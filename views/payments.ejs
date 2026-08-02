@@ -1,0 +1,749 @@
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Payments</h1>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <button class="btn btn-primary back-btn" onclick="window.location.href='/payments';">
+            <i class="ph ph-arrow-left"></i> Back to Payment Ledger
+        </button>
+
+        <div class="payment-modal">
+            <div class="pay-tab-bar">
+                <a href="/dues/association" class="pay-tab-btn <%- paymentType === 'association' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-house"></i> Association Dues
+                </a>
+                <a href="/dues/vehicle" class="pay-tab-btn <%- paymentType === 'vehicle' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-car"></i> Vehicle Sticker
+                </a>
+                <a href="/dues/outstanding" class="pay-tab-btn <%- paymentType === 'outstanding' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-peso-sign"></i> Outstanding Balance
+                </a>
+                <a href="/dues/general" class="pay-tab-btn <%- paymentType === 'general' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-receipt"></i> General Payments
+                </a>
+            </div>
+
+            <div class="modal-body">
+                <form method="POST" action="/payments">
+                    <!-- maps URL param to DB enum value -->
+                    <input type="hidden" id="purpose_field" name="purpose" value="<%= purposeValue %>">
+
+                    <% if (paymentType === 'association') { %>
+
+                        <!-- Association Dues: Property -->
+                        <div class="form-group">
+                            <label class="required-label">Property</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="property_search" class="search-input" placeholder="Search by lot number or street..." autocomplete="off">
+                                <ul id="property_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <input type="hidden" id="property_id" name="property_id">
+                        </div>
+
+                        <!-- Common: Payor -->
+                        <div class="form-group">
+                            <label class="required-label">Homeowner / Payor</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="payor_search" class="search-input" placeholder="Select a property first" autocomplete="off">
+                                <ul id="payor_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <input type="hidden" id="paid_by" name="paid_by">
+                            <small id="payor_hint" style="color:#888; font-size:12px; margin-top:4px; display:block;">Select a property first</small>
+                            <small id="delinquency_status" style="font-size:12px; margin-top:4px; display:none; font-weight:600;"></small>
+                        </div>
+
+                        <!-- Association Dues: Payment Type + Months + Rate Hint -->
+                        <div id="payment-type-section">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Payment Type</label>
+                                    <select name="payment_type" id="payment_type" class="form-control">
+                                        <option value="monthly">Monthly</option>
+                                        <option value="annual">Annual</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="months_group">
+                                    <label>Months</label>
+                                    <select name="months" id="months" class="form-control">
+                                        <% for (let m = 1; m <= 11; m++) { %>
+                                            <option value="<%= m %>"><%= m %></option>
+                                        <% } %>
+                                    </select>
+                                </div>
+                            </div>
+                            <small id="dues_rate_hint" style="color:#888; font-size:12px; margin-top:-8px; margin-bottom:12px; display:block;">Select a property and payment type to see the rate</small>
+                        </div>
+
+                    <% } else if (paymentType === 'vehicle') { %>
+                        <div class="form-group">
+                            <label class="required-label">Vehicle Owner / Payor</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="payor_search" class="search-input" placeholder="Search by name..." autocomplete="off">
+                                <ul id="payor_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <input type="hidden" id="paid_by" name="paid_by">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="required-label">Vehicle(s)</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="vehicle_search" class="search-input" placeholder="Search by plate number to add vehicles..." autocomplete="off">
+                                <ul id="vehicle_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <div id="vehicle_chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+                            <div id="vehicle_ids_inputs"><!-- hidden vehicle_ids inputs injected here by JS --></div>
+                            <small id="sticker_rate_hint" style="color:#888; font-size:12px; margin-top:4px; display:block;">Select a  payor and at least one vehicle to see the sticker rate</small>
+                        </div>
+
+                    <% } else if (paymentType === 'outstanding') { %>
+                        <div class="form-group">
+                            <label class="required-label">Property</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="property_search" class="search-input" placeholder="Search by lot number or street..." autocomplete="off" required>
+                                <ul id="property_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <input type="hidden" id="property_id" name="property_id">
+                            <small id="outstanding_hint" style="color:#888; font-size:12px; margin-top:4px; display:block;">Select a property to see its current outstanding balance</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="required-label">Payor</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="payor_search" class="search-input" placeholder="Select a property first" autocomplete="off" required>
+                                <ul id="payor_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <input type="hidden" id="paid_by" name="paid_by">
+                            <small id="payor_hint" style="color:#888; font-size:12px; margin-top:4px; display:block;">Select a property first</small>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Outstanding Balance (Expected)</label>
+                                <input type="number" step="0.01" id="amount_expected" name="amount_expected"
+                                       class="form-control" readonly placeholder="Auto-filled from property"
+                                       style="background:#f5f5f5;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required-label">Amount Paid</label>
+                                <input type="number" step="0.01" name="amount_paid" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="required-label">Date Paid</label>
+                            <input type="date" name="date_paid" class="form-control" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required-label">Payment Method</label>
+                                <select name="payment_method" class="form-control" required>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Check">Check</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="GCash">GCash</option>
+                                    <option value="Maya">Maya</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="required-label">Receipt Number</label>
+                                <input type="text" name="receipt_number" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Remarks</label>
+                            <textarea name="remarks" class="form-control" rows="3" style="width:100%; resize:vertical;"></textarea>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" type="submit">Record Payment</button>
+                        </div>
+
+                    <% } else { %>
+                        <div class="form-group">
+                            <label class="required-label">Payment Sub-type</label>
+                            <select name="payment_subtype" class="form-control" required>
+                                <option value="basketball_rental">Basketball Court Rental</option>
+                                <option value="racquet_rental">Racquet Court Rental</option>
+                                <option value="football_rental">Football Field Rental</option>
+                                <option value="clubhouse_rental">Clubhouse Rental</option>
+                                <option value="tables_rental">Tables and Chair Rental</option>
+                                <option value="endorsement_letter">Endorsement Letter</option>
+                                <option value="construction_fee">Construction Fee</option>
+                                <option value="construction_bond">Construction Bond</option>
+                                <option value="renovation_fee">Renovation Fee</option>
+                                <option value="penalty">Penalty</option>
+                                <option value="donation">Donation</option>
+                                <option value="bulletin_fee">Bulletin Board Fee</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="required-label">Payor</label>
+                            <div class="resident-search-wrap">
+                                <input type="text" id="payor_search" name="payor_name_text" class="search-input" placeholder="Search by name..." autocomplete="off" required> 
+                                <ul id="payor_dropdown" class="resident-dropdown-list"></ul>
+                            </div>
+                            <input type="hidden" id="paid_by" name="paid_by">
+                        </div>
+                    <% } %>
+
+                    <% if (paymentType !== 'outstanding') { %>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <% if (paymentType === 'general') { %>
+                                    <label class="required-label">Expected Amount</label>
+                                    <input type="number" step="0.01" name="amount_expected" class="form-control" required>
+                                <% } else { %>
+                                    <label>Expected Amount</label>
+                                    <input type="number" step="0.01" name="amount_expected" id="amount_expected" class="form-control" placeholder="Auto-filled" readonly style="background:#f5f5f5;">
+                                <% } %>
+                            </div>
+                            <div class="form-group">
+                                <label class="required-label">Amount Paid</label>
+                                <input type="number" step="0.01" name="amount_paid" id="amount_paid" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="required-label">Date Paid</label>
+                            <input type="date" name="date_paid" id="date_paid" class="form-control" max="<%= new Date().toISOString().split('T')[0] %>" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required-label">Payment Method</label>
+                                <select name="payment_method" id="payment_method" class="form-control" required>
+                                    <option value="" disabled selected>Select...</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Check">Check</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="GCash">GCash</option>
+                                    <option value="Maya">Maya</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="required-label">Receipt Number</label>
+                                <input type="text" name="receipt_number" id="receipt_number" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Remarks</label>
+                            <textarea name="remarks" class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <small id="submit_error" class="error-message" style="display:none; color:#c0392b; font-size:13px; margin-bottom:8px;"></small>
+
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" type="submit">Save Payment</button>
+                        </div>
+                    <% } %>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Embedded data for search dropdowns -->
+<script id="personData"            type="application/json"><%- JSON.stringify(persons)             %></script>
+<script id="propertyData"          type="application/json"><%- JSON.stringify(properties)          %></script>
+<script id="vehicleData"           type="application/json"><%- JSON.stringify(vehicles)            %></script>
+<script id="residentsByPropertyData" type="application/json"><%- JSON.stringify(residentsByProperty) %></script>
+<script src="/js/sidebar.js"></script>
+<script>
+    // ── Currency rounding helper (avoids JS toFixed() floating-point quirks) ──
+    const fmtCurrency = n => (Math.round(parseFloat(n) * 100) / 100).toFixed(2);
+
+    // ── Load embedded data ────────────────────────────────────────────────────
+    const allPersons            = JSON.parse(document.getElementById('personData').textContent);
+    const allProperties         = JSON.parse(document.getElementById('propertyData').textContent);
+    const allVehicles           = JSON.parse(document.getElementById('vehicleData').textContent);
+    const residentsByProperty   = JSON.parse(document.getElementById('residentsByPropertyData').textContent);
+
+    let selectedPropertyId = null;
+
+    // ── Generic searchable dropdown initializer ───────────────────────────────
+    function initSearch(inputId, dropdownId, hiddenId, getItems, labelFn, valueFn, onSelect) {
+        const input    = document.getElementById(inputId);
+        const dropdown = document.getElementById(dropdownId);
+        const hidden   = document.getElementById(hiddenId);
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            hidden.value = '';
+            dropdown.innerHTML = '';
+            if (!q) { dropdown.style.display = 'none'; return; }
+
+            const matches = getItems().filter(item => labelFn(item).toLowerCase().includes(q));
+            if (!matches.length) { dropdown.style.display = 'none'; return; }
+
+            matches.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = labelFn(item);
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    input.value            = labelFn(item);
+                    hidden.value           = valueFn(item);
+                    dropdown.style.display = 'none';
+                    if (onSelect) onSelect(item);
+                });
+                dropdown.appendChild(li);
+            });
+            dropdown.style.display = 'block';
+        });
+
+        input.addEventListener('blur', () => {
+            setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+        });
+    }
+
+    // ── Wire up dropdowns based on payment type ───────────────────────────────
+
+    // Property search — on select, reset payor and lock it to that property's residents
+    if (document.getElementById('property_search')) {
+        const propInput    = document.getElementById('property_search');
+        const propDropdown = document.getElementById('property_dropdown');
+        const propHidden   = document.getElementById('property_id');
+        const payorInput   = document.getElementById('payor_search');
+        const payorHint    = document.getElementById('payor_hint');
+
+        propInput.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            propHidden.value = '';
+            selectedPropertyId = null;
+            propDropdown.innerHTML = '';
+
+            // Reset payor when property changes
+            if (payorInput) {
+                payorInput.value = '';
+                document.getElementById('paid_by').value = '';
+                if (payorHint) payorHint.textContent = 'Select a property first';
+            }
+
+            if (!q) { propDropdown.style.display = 'none'; return; }
+
+            const matches = allProperties.filter(p =>
+                (`Lot ${p.lot_number} ${p.street_name}`).toLowerCase().includes(q)
+            );
+            if (!matches.length) { propDropdown.style.display = 'none'; return; }
+
+            matches.forEach(prop => {
+                const li = document.createElement('li');
+                li.textContent = `Lot ${prop.lot_number} — ${prop.street_name}`;
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    propInput.value        = `Lot ${prop.lot_number} — ${prop.street_name}`;
+                    propHidden.value       = prop.property_id;
+                    selectedPropertyId     = String(prop.property_id);
+                    propDropdown.style.display = 'none';
+
+                    // Auto-fill outstanding balance — only on the Outstanding Balance
+                    // page (outstanding_hint only exists there; this must NOT fire on
+                    // Association Dues, which shares the same #amount_expected field id).
+                    const outstandingHintEl = document.getElementById('outstanding_hint');
+                    if (outstandingHintEl) {
+                        const amountExpected = document.getElementById('amount_expected');
+                        const bal = Math.round(parseFloat(prop.outstandingBalance || 0) * 100) / 100;
+                        if (amountExpected) amountExpected.value = bal.toFixed(2);
+                        outstandingHintEl.textContent = prop.hasDues
+                            ? `Current outstanding balance: ₱${bal.toLocaleString('en-PH', {minimumFractionDigits:2})}`
+                            : 'This property has no recorded outstanding dues.';
+                        outstandingHintEl.style.color = prop.hasDues ? '#c77b00' : '#888';
+                    }
+
+                    // Reset payor and update hint
+                    if (payorInput) {
+                        payorInput.value = '';
+                        document.getElementById('paid_by').value = '';
+                        const residents = residentsByProperty[selectedPropertyId] || [];
+                        if (payorHint) {
+                            payorHint.textContent = residents.length
+                                ? `${residents.length} resident(s) in this property`
+                                : 'No residents linked to this property';
+                        }
+                        const statusEl = document.getElementById('delinquency_status');
+                        if (statusEl) statusEl.style.display = 'none';
+                    }
+
+                    // Association Dues: property type determines the rate, so refresh the estimate
+                    if (typeof updateDuesEstimate === 'function') updateDuesEstimate();
+                });
+                propDropdown.appendChild(li);
+            });
+            propDropdown.style.display = 'block';
+        });
+
+        propInput.addEventListener('blur', () => {
+            setTimeout(() => { propDropdown.style.display = 'none'; }, 150);
+        });
+
+        // ── Pre-select from ?property_id deep-link (residents outstanding dues) ──
+        <% if (typeof preselectedPropertyId !== 'undefined' && preselectedPropertyId) { %>
+        (function () {
+            const _pid  = <%= preselectedPropertyId %>;
+            const _prop = allProperties.find(p => p.property_id === _pid);
+            if (!_prop) return;
+
+            // Fill property field
+            propInput.value    = `Lot ${_prop.lot_number} — ${_prop.street_name}`;
+            propHidden.value   = _prop.property_id;
+            selectedPropertyId = String(_prop.property_id);
+
+            // Fill outstanding balance amount
+            const _bal = Math.round(parseFloat(_prop.outstandingBalance || 0) * 100) / 100;
+            const _amt = document.getElementById('amount_expected');
+            if (_amt) _amt.value = _bal.toFixed(2);
+
+            // Update outstanding hint
+            const _hint = document.getElementById('outstanding_hint');
+            if (_hint) {
+                _hint.textContent = _prop.hasDues
+                    ? `Current outstanding balance: ₱${_bal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+                    : 'This property has no recorded outstanding dues.';
+                _hint.style.color = _prop.hasDues ? '#c77b00' : '#888';
+            }
+
+            // Auto-fill payor — use the person linked from the residents page if provided,
+            // otherwise fall back to the homeowner.
+            const _residents  = residentsByProperty[selectedPropertyId] || [];
+            const _prePersonId = <%= (typeof preselectedPersonId !== 'undefined' && preselectedPersonId) ? preselectedPersonId : 'null' %>;
+            let _payor = null;
+            if (_prePersonId) {
+                _payor = _residents.find(r => r.person_id === _prePersonId)
+                      || allPersons.find(p => p.person_id === _prePersonId);
+            }
+            if (!_payor) {
+                _payor = _residents.find(r => r.resident_type === 'Homeowner') || _residents[0];
+            }
+            if (_payor && payorInput) {
+                payorInput.value = _payor.full_name;
+                document.getElementById('paid_by').value = _payor.person_id;
+            }
+            if (payorHint) {
+                payorHint.textContent = _residents.length
+                    ? `${_residents.length} resident(s) in this property`
+                    : 'No residents linked to this property';
+            }
+        })();
+        <% } %>
+    }
+
+    // Payor search — filtered to property residents when a property is selected
+    if (document.getElementById('payor_search')) {
+        const isAssociationForm = document.getElementById('property_search') && document.getElementById('payment_type');
+
+        initSearch(
+            'payor_search', 'payor_dropdown', 'paid_by',
+            () => selectedPropertyId
+                ? (residentsByProperty[selectedPropertyId] || [])
+                : allPersons,
+            p => p.full_name,
+            p => p.person_id,
+            isAssociationForm ? (resident) => {
+                // AC: display homeowner's current status (Current/Delinquent)
+                const statusEl = document.getElementById('delinquency_status');
+                if (statusEl) {
+                    if (resident.isDelinquent) {
+                        statusEl.textContent = 'Status: Delinquent';
+                        statusEl.style.color = '#c0392b';
+                    } else {
+                        statusEl.textContent = 'Status: Current';
+                        statusEl.style.color = '#2e7d32';
+                    }
+                    statusEl.style.display = 'block';
+                }
+                updateDuesEstimate();
+            } : null
+        );
+    }
+
+    // ── Association Dues: months toggle + live rate estimate ─────────────────
+    if (document.getElementById('payment_type') && document.getElementById('property_search')) {
+        const paymentTypeSelect = document.getElementById('payment_type');
+        const monthsGroup       = document.getElementById('months_group');
+        const monthsSelect      = document.getElementById('months');
+        const duesHint          = document.getElementById('dues_rate_hint');
+        const duesAmountField   = document.getElementById('amount_expected');
+
+        function toggleMonthsVisibility() {
+            const isAnnual = paymentTypeSelect.value === 'annual';
+            monthsGroup.style.display = isAnnual ? 'none' : '';
+        }
+
+        // Defined before anything below references it — addEventListener needs
+        // an actual function value at registration time, not just later.
+        window.updateDuesEstimate = async function updateDuesEstimate() {
+            const propertyId = document.getElementById('property_id').value;
+            if (!propertyId) {
+                if (duesAmountField) duesAmountField.value = '';
+                if (duesHint) { duesHint.textContent = 'Select a property and payment type to see the rate'; duesHint.style.color = '#888'; }
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams();
+                params.append('payment_type', paymentTypeSelect.value);
+                if (paymentTypeSelect.value !== 'annual') params.append('months', monthsSelect.value);
+
+                const res  = await fetch(`/properties/${propertyId}/association-dues-estimate?${params.toString()}`);
+                const json = await res.json();
+
+                if (!json.success) {
+                    if (duesAmountField) duesAmountField.value = '';
+                    if (duesHint) { duesHint.textContent = json.message; duesHint.style.color = '#c0392b'; }
+                    return;
+                }
+
+                if (duesAmountField) duesAmountField.value = fmtCurrency(json.amount); // AC 3
+                if (duesHint) {
+                    duesHint.textContent = json.isAnnual
+                        ? `${json.propertyType} annual rate: ₱${parseFloat(json.unitRate).toLocaleString('en-PH', {minimumFractionDigits:2})}`
+                        : `${json.propertyType} monthly rate: ₱${parseFloat(json.unitRate).toLocaleString('en-PH', {minimumFractionDigits:2})} × ${monthsSelect.value} month(s)`;
+                    duesHint.style.color = '#888';
+                }
+            } catch (e) {
+                if (duesAmountField) duesAmountField.value = '';
+                if (duesHint) { duesHint.textContent = 'Could not fetch rate estimate.'; duesHint.style.color = '#c0392b'; }
+            }
+        };
+
+        toggleMonthsVisibility();
+        paymentTypeSelect.addEventListener('change', () => { toggleMonthsVisibility(); updateDuesEstimate(); });
+        monthsSelect.addEventListener('change', updateDuesEstimate);
+
+        // ── Submit-time validation (Scenario 2 / AC 6) ──────────────────────
+        const associationForm = paymentTypeSelect.closest('form');
+        const submitError     = document.getElementById('submit_error');
+
+        function markInvalid(el) { if (el) el.classList.add('error'); }
+        function clearInvalid(el) { if (el) el.classList.remove('error'); }
+
+        associationForm.addEventListener('submit', function (e) {
+            const propertyIdField  = document.getElementById('property_id');
+            const paidByField      = document.getElementById('paid_by');
+            const receiptField     = document.getElementById('receipt_number');
+            const dateField        = document.getElementById('date_paid');
+            const methodField      = document.getElementById('payment_method');
+            const amountPaidField  = document.getElementById('amount_paid');
+
+            [document.getElementById('property_search'), document.getElementById('payor_search'),
+             receiptField, dateField, methodField, amountPaidField]
+                .filter(Boolean).forEach(clearInvalid);
+            submitError.style.display = 'none';
+
+            const missing = [];
+            if (!propertyIdField.value) { missing.push('Property'); markInvalid(document.getElementById('property_search')); }
+            if (!paidByField.value)     { missing.push('Payor');    markInvalid(document.getElementById('payor_search')); }
+            if (!receiptField.value.trim()) { missing.push('Receipt Number');  markInvalid(receiptField); }
+            if (!dateField.value)           { missing.push('Date Paid');       markInvalid(dateField); }
+            if (!methodField.value)         { missing.push('Payment Method');  markInvalid(methodField); }
+
+            if (missing.length > 0) {
+                e.preventDefault();
+                submitError.textContent = `Please fill in: ${missing.join(', ')}.`;
+                submitError.style.display = 'block';
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            if (dateField.value > today) {
+                e.preventDefault();
+                markInvalid(dateField);
+                submitError.textContent = 'Date paid cannot be in the future.';
+                submitError.style.display = 'block';
+                return;
+            }
+
+        });
+    }
+
+    // Vehicle search (vehicle type) — multi-select via chips
+    if (document.getElementById('vehicle_search')) {
+        const vehicleSearchInput = document.getElementById('vehicle_search');
+        const vehicleDropdown    = document.getElementById('vehicle_dropdown');
+        const vehicleChips       = document.getElementById('vehicle_chips');
+        const vehicleIdsInputs   = document.getElementById('vehicle_ids_inputs');
+        const stickerHint        = document.getElementById('sticker_rate_hint');
+        const amountField        = document.getElementById('amount_expected');
+
+        let selectedVehicleIds = []; // AC 1.1: multiple vehicles can be selected
+
+        const vehicleLabel = v => v.plate_number ? `${v.plate_number} (${v.make} ${v.model})` : `${v.make} ${v.model}`;
+
+        function syncHiddenVehicleInputs() {
+            vehicleIdsInputs.innerHTML = '';
+            selectedVehicleIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type  = 'hidden';
+                input.name  = 'vehicle_ids';
+                input.value = id;
+                vehicleIdsInputs.appendChild(input);
+            });
+        }
+
+        function renderChips() {
+            vehicleChips.innerHTML = '';
+            selectedVehicleIds.forEach(id => {
+                const v = allVehicles.find(v => String(v.vehicle_id) === String(id));
+                if (!v) return;
+                const chip = document.createElement('span');
+                chip.style.cssText = 'display:inline-flex; align-items:center; gap:6px; background:#eef2f7; border-radius:14px; padding:4px 10px; font-size:13px;';
+                chip.textContent = vehicleLabel(v);
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.style.cssText = 'border:none; background:none; cursor:pointer; font-size:15px; line-height:1; color:#888;';
+                remove.addEventListener('click', () => {
+                    selectedVehicleIds = selectedVehicleIds.filter(vid => String(vid) !== String(id));
+                    renderChips();
+                    syncHiddenVehicleInputs();
+                    updateStickerEstimate();
+                });
+                chip.appendChild(remove);
+                vehicleChips.appendChild(chip);
+            });
+        }
+
+        vehicleSearchInput.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            vehicleDropdown.innerHTML = '';
+            if (!q) { vehicleDropdown.style.display = 'none'; return; }
+
+            const matches = allVehicles.filter(v =>
+                !selectedVehicleIds.some(id => String(id) === String(v.vehicle_id)) &&
+                vehicleLabel(v).toLowerCase().includes(q)
+            );
+            if (!matches.length) { vehicleDropdown.style.display = 'none'; return; }
+
+            matches.forEach(v => {
+                const li = document.createElement('li');
+                li.textContent = vehicleLabel(v);
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    selectedVehicleIds.push(v.vehicle_id);
+                    vehicleSearchInput.value = '';
+                    vehicleDropdown.style.display = 'none';
+                    renderChips();
+                    syncHiddenVehicleInputs();
+                    updateStickerEstimate();
+                });
+                vehicleDropdown.appendChild(li);
+            });
+            vehicleDropdown.style.display = 'block';
+        });
+
+        vehicleSearchInput.addEventListener('blur', () => {
+            setTimeout(() => { vehicleDropdown.style.display = 'none'; }, 150);
+        });
+
+        // Live sticker rate estimate — display only (AC 1.2/1.3/1.4); the
+        // server recomputes the authoritative amount on submit regardless.
+        async function updateStickerEstimate() {
+            const personId = document.getElementById('paid_by') ? document.getElementById('paid_by').value : '';
+
+            if (selectedVehicleIds.length === 0) {
+                if (amountField) amountField.value = '';
+                if (stickerHint) { stickerHint.textContent = 'Select a payor and at least one vehicle to see the sticker rate'; stickerHint.style.color = '#888'; }
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams();
+                params.append('person_id', personId || '');
+                selectedVehicleIds.forEach(id => params.append('vehicle_ids', id));
+
+                const res  = await fetch(`/vehicles/sticker-rate-estimate?${params.toString()}`);
+                const json = await res.json();
+
+                if (!json.success) {
+                    if (stickerHint) { stickerHint.textContent = json.message; stickerHint.style.color = '#c0392b'; }
+                    return;
+                }
+
+                if (amountField) amountField.value = fmtCurrency(json.totalAmount); // AC 1.3/1.4
+
+                if (stickerHint) {
+                    const breakdown = json.items.map(item => {
+                        const label = item.stickerNumber ? `sticker #${item.stickerNumber}` : item.type;
+                        return `${item.plate_number || item.type} — ${label} @ ₱${parseFloat(item.amount).toLocaleString('en-PH', {minimumFractionDigits:2})} (${item.rateCategory})`;
+                    }).join('; ');
+                    stickerHint.textContent = breakdown;
+                    stickerHint.style.color = '#888';
+                }
+            } catch (e) {
+                if (stickerHint) { stickerHint.textContent = 'Could not fetch rate estimate.'; stickerHint.style.color = '#c0392b'; }
+            }
+        }
+
+        // Recompute whenever payor changes (dropdown selection uses mousedown, so listen after it settles)
+        const vehiclePayorSearch = document.getElementById('payor_search');
+        if (vehiclePayorSearch) {
+            vehiclePayorSearch.addEventListener('blur', () => setTimeout(updateStickerEstimate, 200));
+        }
+
+        // ── Submit-time validation (AC 3.1 / AC 3.3) ───────────────────────
+        const vehicleForm  = vehicleSearchInput.closest('form');
+        const submitError  = document.getElementById('submit_error');
+
+        function markInvalid(el) { if (el) el.classList.add('error'); }
+        function clearInvalid(el) { if (el) el.classList.remove('error'); }
+
+        vehicleForm.addEventListener('submit', function (e) {
+            const paidByField      = document.getElementById('paid_by');
+            const receiptField     = document.getElementById('receipt_number');
+            const dateField        = document.getElementById('date_paid');
+            const methodField      = document.getElementById('payment_method');
+            const amountPaidField  = document.getElementById('amount_paid');
+
+            [paidByField, receiptField, dateField, methodField, amountPaidField, vehicleSearchInput]
+                .forEach(clearInvalid);
+            submitError.style.display = 'none';
+
+            const missing = [];
+            if (!paidByField.value)                       { missing.push('Resident'); markInvalid(document.getElementById('payor_search')); }
+            if (selectedVehicleIds.length === 0)           { missing.push('Vehicle');  markInvalid(vehicleSearchInput); }
+            if (!receiptField.value.trim())                { missing.push('Receipt Number'); markInvalid(receiptField); }
+            if (!dateField.value)                          { missing.push('Date Paid'); markInvalid(dateField); }
+            if (!methodField.value)                        { missing.push('Payment Method'); markInvalid(methodField); }
+
+            if (missing.length > 0) {
+                e.preventDefault();
+                submitError.textContent = `Please fill in: ${missing.join(', ')}.`;
+                submitError.style.display = 'block';
+                return;
+            }
+
+            // AC 5: date paid cannot be in the future (native max= already blocks this too)
+            const today = new Date().toISOString().split('T')[0];
+            if (dateField.value > today) {
+                e.preventDefault();
+                markInvalid(dateField);
+                submitError.textContent = 'Date paid cannot be in the future.';
+                submitError.style.display = 'block';
+                return;
+            }
+
+        });
+    }
+</script>

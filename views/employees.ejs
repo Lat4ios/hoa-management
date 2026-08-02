@@ -1,0 +1,328 @@
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Employees</h1>
+            <p class="page-subtitle">View, add, edit, and manage all employees</p>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <% if (success) { %>
+            <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+        <% } %>
+        <% if (error) { %>
+            <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <%= error %></div>
+        <% } %>
+
+        <div class="search-bar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="search-input"
+                    placeholder="Search by name, position, or email..."
+                    oninput="filterTable()">
+            </div>
+
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fa-solid fa-plus"></i> Add Employee
+            </button>
+        </div>
+
+        <p class="employee-count" id="employeeCount">
+            Showing <strong><%= employees.length %></strong> employee<%= employees.length === 1 ? 'y' : 's' %>
+        </p>
+
+        <div class="table-container">
+            <table class="data-table" id="employeeTable">
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Position</th>
+                        <th>Email</th>
+                        <th>Phone Number</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (employees.length === 0) { %>
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                No employee records found. Click "Add Employee" to create one.
+                            </td>
+                        </tr>
+                    <% } else { %>
+                        <% employees.forEach(emp => { %>
+                            <tr>
+                                <td><strong><%= emp.first_name %> <%= emp.middle_name || '' %> <%= emp.last_name %> <%= emp.suffix || '' %></strong></td>
+                                <td><span class="badge position-badge"><%= emp.position %></span></td>
+                                <td><%= emp.email || '—' %></td>
+                                <td><%= emp.contact_num || '—' %></td>
+                                <td>
+                                    <button class="btn-icon"
+                                            onclick="openEditModal(this)"
+                                            data-id="<%= emp.employee_id %>"
+                                            data-firstname="<%= emp.first_name %>"
+                                            data-middlename="<%= emp.middle_name || '' %>"
+                                            data-lastname="<%= emp.last_name %>"
+                                            data-suffix="<%= emp.suffix || '' %>"
+                                            data-position="<%= emp.position %>"
+                                            data-salary="<%= emp.salary %>"
+                                            data-email="<%= emp.email || '' %>"
+                                            data-phone="<%= emp.contact_num || '' %>">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button class="btn-icon btn-icon-danger"
+                                            onclick="confirmDelete(this.dataset.id, this.dataset.name)"
+                                            data-id="<%= emp.employee_id %>"
+                                            data-name="<%= emp.first_name %> <%= emp.last_name %>">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+</div>
+
+<!-- ── ADD / EDIT MODAL ─────────────────────────────────────────────────────── -->
+<div id="employeeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add Employee</h2>
+            <button class="modal-close" onclick="closeModal('employeeModal')">&times;</button>
+        </div>
+        <form id="employeeForm" action="/employees" method="POST" onsubmit="return validateEmployeeForm()">
+            <input type="hidden" id="employeeId" name="employeeId">
+            <div class="modal-body">
+
+                <!-- Personal Information -->
+                <p class="form-section-title">Personal Information</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>First Name <span class="required-star">*</span></label>
+                        <input type="text" id="firstNameInput" name="first_name"
+                               placeholder="e.g. Juan"
+                               oninput="sanitizeName(this)" onblur="formatName(this)" required>
+                        <span class="field-error-msg" id="firstNameError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Middle Name</label>
+                        <input type="text" id="middleNameInput" name="middle_name"
+                               placeholder="e.g. Santos"
+                               oninput="sanitizeName(this)" onblur="formatName(this)">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Last Name <span class="required-star">*</span></label>
+                        <input type="text" id="lastNameInput" name="last_name"
+                               placeholder="e.g. Dela Cruz"
+                               oninput="sanitizeName(this)" onblur="formatName(this)" required>
+                        <span class="field-error-msg" id="lastNameError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Suffix</label>
+                        <select id="suffixInput" name="suffix">
+                            <option value="">None</option>
+                            <option value="Jr.">Jr.</option>
+                            <option value="Sr.">Sr.</option>
+                            <option value="II">II</option>
+                            <option value="III">III</option>
+                            <option value="IV">IV</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Employment Details -->
+                <p class="form-section-title">Employment Details</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Position <span class="required-star">*</span></label>
+                        <select id="positionInput" name="position" required>
+                            <option value="">Select position...</option>
+                            <option value="Security Guard">Security Guard</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Bookkeeper">Bookkeeper</option>
+                            <option value="Secretary">Secretary</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Monthly Salary <span class="required-star">*</span></label>
+                        <div class="input-prefix-wrap">
+                            <span class="input-prefix">&#8369;</span>
+                            <input type="number" id="salaryInput" name="salary"
+                                   placeholder="0.00" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <p class="form-section-title">Contact Information</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="emailInput" name="email"
+                               placeholder="e.g. juan@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phoneInput" name="contact_num"
+                               placeholder="e.g. 09XX XXX XXXX">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('employeeModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Add Employee</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── DELETE MODAL ─────────────────────────────────────────────────────────── -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h2>Delete Employee</h2>
+            <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteEmployeeName"></strong>?</p>
+            <p style="color:#dc3545;font-size:13px;margin-top:8px;font-weight:500;">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/sidebar.js"></script>
+<script>
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent  = 'Add Employee';
+        document.getElementById('submitBtn').textContent   = 'Add Employee';
+        document.getElementById('employeeForm').action     = '/employees';
+        document.getElementById('employeeForm').reset();
+        document.getElementById('employeeId').value        = '';
+        document.getElementById('employeeModal').classList.add('active');
+    }
+
+    function openEditModal(btn) {
+        document.getElementById('modalTitle').textContent  = 'Edit Employee';
+        document.getElementById('submitBtn').textContent   = 'Save Changes';
+        document.getElementById('employeeForm').action     = '/employees/update';
+        document.getElementById('employeeId').value        = btn.dataset.id;
+        document.getElementById('firstNameInput').value    = btn.dataset.firstname;
+        document.getElementById('middleNameInput').value   = btn.dataset.middlename;
+        document.getElementById('lastNameInput').value     = btn.dataset.lastname;
+        document.getElementById('suffixInput').value       = btn.dataset.suffix || '';
+        document.getElementById('positionInput').value     = btn.dataset.position;
+        document.getElementById('salaryInput').value       = btn.dataset.salary;
+        document.getElementById('emailInput').value        = btn.dataset.email;
+        document.getElementById('phoneInput').value        = btn.dataset.phone;
+        document.getElementById('employeeModal').classList.add('active');
+    }
+
+    function confirmDelete(id, name) {
+        document.getElementById('deleteEmployeeName').textContent = name;
+        document.getElementById('confirmDeleteBtn').onclick = async () => {
+            const res = await fetch(`/employees/${id}`, { method: 'DELETE' });
+            if (res.ok) window.location.href = '/employees?success=Employee+deleted+successfully.';
+            else        window.location.href = '/employees?error=Failed+to+delete+employee.';
+        };
+        document.getElementById('deleteModal').classList.add('active');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    window.onclick = function (event) {
+        ['employeeModal', 'deleteModal'].forEach(id => {
+            if (event.target === document.getElementById(id)) closeModal(id);
+        });
+    };
+
+    function filterTable() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll('#employeeTable tbody tr').forEach(row => {
+            if (row.cells.length === 1) return;
+            row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    // ── Name field validation ────────────────────────────────────────────────
+    function sanitizeName(input) {
+        const before = input.value;
+        const after  = before.replace(/[0-9]/g, '');
+        if (after !== before) {
+            input.value = after;
+            showFieldError(input, 'Numbers are not allowed in name fields.');
+        } else {
+            clearFieldError(input);
+        }
+    }
+
+    function formatName(input) {
+        if (!input.value.trim()) return;
+        input.value = input.value.trim()
+            .replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+        clearFieldError(input);
+    }
+
+    function showFieldError(input, msg) {
+        input.classList.add('input-error');
+        const errEl = document.getElementById(input.id.replace('Input', '') + 'Error');
+        if (errEl) errEl.textContent = msg;
+    }
+
+    function clearFieldError(input) {
+        input.classList.remove('input-error');
+        const errEl = document.getElementById(input.id.replace('Input', '') + 'Error');
+        if (errEl) errEl.textContent = '';
+    }
+
+    function validateEmployeeForm() {
+        const nameFields = [
+            { el: document.getElementById('firstNameInput'),  errId: 'firstNameError' },
+            { el: document.getElementById('lastNameInput'),   errId: 'lastNameError'  },
+        ];
+        let valid = true;
+        nameFields.forEach(({ el, errId }) => {
+            if (/[0-9]/.test(el.value)) {
+                el.classList.add('input-error');
+                document.getElementById(errId).textContent = 'Numbers are not allowed in name fields.';
+                valid = false;
+            }
+        });
+        return valid;
+    }
+
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => a.style.display = 'none');
+    }, 4000);
+</script>

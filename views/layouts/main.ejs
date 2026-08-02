@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'HOA Management' %></title>
+
+    <!-- BASE STYLES (dashboard layout, sidebar, cards, tables) -->
+    <link rel="stylesheet" href="/css/dashboard.css">
+
+    <!-- PAGE-SPECIFIC CSS — controllers pass pageCSS: 'filename.css' when needed -->
+    <% if (typeof pageCSS !== 'undefined') { %>
+        <link rel="stylesheet" href="/css/<%= pageCSS %>">
+    <% } %>
+
+    <!-- GOOGLE FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- ICONS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css"/>
+</head>
+<body>
+
+    <!-- SHARED SIDEBAR PARTIAL -->
+    <%- include('../partials/sidebar') %>
+
+    <div class="main-wrapper">
+        <!-- PAGE CONTENT INJECTED HERE BY EXPRESS-EJS-LAYOUTS -->
+        <%- body %>
+    </div>
+
+</body>
+</html>

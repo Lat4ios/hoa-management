@@ -1,0 +1,94 @@
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Reports</h1>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <p class="reports-subtitle">Select a report type to generate a printable document from live data.</p>
+
+        <div class="report-cards">
+
+            <div class="report-card">
+                <div class="report-card-icon red">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="report-card-info">
+                    <h3>Delinquency Report</h3>
+                    <p>Lists all delinquent properties with outstanding balances, months overdue, and last payment dates.</p>
+                </div>
+                <a href="/reports/delinquency" target="_blank" class="btn btn-primary">
+                    <i class="fa-solid fa-file-lines"></i> Generate
+                </a>
+            </div>
+
+<div class="report-card">
+                <div class="report-card-icon teal">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <div class="report-card-info">
+                    <h3>Village General Report</h3>
+                    <p>Count of properties, active residents, active employees, and active vehicles within a selected time period.</p>
+                </div>
+                <a href="/reports/village-general" target="_blank" class="btn btn-primary">
+                    <i class="fa-solid fa-file-lines"></i> Generate
+                </a>
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-icon green">
+                    <i class="fa-solid fa-person-cane"></i>
+                </div>
+                <div class="report-card-info">
+                    <h3>Senior Citizen Report</h3>
+                    <p>Lists active and inactive senior citizens, and residents turning 60 within the next year.</p>
+                </div>
+                <a href="/reports/senior-citizens" target="_blank" class="btn btn-primary">
+                    <i class="fa-solid fa-file-lines"></i> Generate
+                </a>
+            </div>
+
+            <div class="report-card coming-soon">
+                <div class="report-card-icon yellow">
+                    <i class="fa-solid fa-car"></i>
+                </div>
+                <div class="report-card-info">
+                    <h3>Vehicle Sticker Sales Report</h3>
+                    <p>Total sticker earnings and count breakdown by vehicle type (cars, motorcycles, e-bikes, commercial).</p>
+                </div>
+                <span class="btn-coming-soon">WIP</span>
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-icon purple">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                <div class="report-card-info">
+                    <h3>Financials Report</h3>
+                    <p>Annual collections and expenses breakdown with ending balance for a given year.</p>
+                </div>
+                <a href="/reports/financials" target="_blank" class="btn btn-primary">
+                    <i class="fa-solid fa-file-lines"></i> Generate
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="/js/sidebar.js"></script>
+</div>

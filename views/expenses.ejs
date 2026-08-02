@@ -1,0 +1,311 @@
+<div class="main-wrapper">
+    <div class="sidebar-open nav-item">
+        <i class="fa-solid fa-bars"></i>
+        <span>Open Sidebar</span>
+    </div>
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1 class="page-title">Expenses</h1>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-user">
+                <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="user-info">
+                    <span class="user-name">Village Admin</span>
+                    <span class="user-role">Administrator</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <button class="btn btn-primary back-btn" onclick="window.location.href='/payments';">
+            <i class="ph ph-arrow-left"></i> Back to Payment Ledger
+        </button>
+    
+        <div class="payment-modal">
+            <div class="pay-tab-bar">
+                <a href="/expenses/utilities" class="pay-tab-btn <%- expenseType === 'utilities' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-house"></i> Utilities 
+                </a>
+                <a href="/expenses/salaries" class="pay-tab-btn <%- expenseType === 'vehicle' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-car"></i> Employee Salary
+                </a>
+                <a href="/expenses/maintenance" class="pay-tab-btn <%- expenseType === 'maintenance' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-car"></i> Maintenance
+                </a>
+                <a href="/expenses/cash" class="pay-tab-btn <%- expenseType === 'cash' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-car"></i> Petty Cash
+                </a>
+                <a href="/expenses/food" class="pay-tab-btn <%- expenseType === 'food' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-car"></i> Food
+                </a>
+                <a href="/expenses/project" class="pay-tab-btn <%- expenseType === 'project' ? 'pay-tab-active' : '' %>">
+                    <i class="fa-solid fa-car"></i> Community Project
+                </a>
+            </div>
+            
+            <div class="modal-header">
+                <h1>
+                    <% if (expenseType === 'utilities') { %>Utilities Expense 
+                    <% } else if (expenseType === 'salaries') { %>Employee Salary Expense 
+                    <% } else if (expenseType === 'maintenance') { %>Maintenance Expense 
+                    <% } else if (expenseType === 'cash') { %>Petty Cash Expense 
+                    <% } else if (expenseType === 'food') { %>Food Expense 
+                    <% } else if (expenseType === 'project'){ %>Community Project Expense 
+                    <% } else { %>Other Expense 
+                    <% } %>              
+                </h1>
+            </div>
+
+            <div class="modal-body">
+                <form method="POST" action="/expenses">
+                    <input type="hidden" name="purpose" value="<%= purposeValue %>">
+
+                    <!-- one payor input functionality 4 all expense types -->
+                    <div class="form-group">
+                        <label class="required-label">Payor</label>
+                        <div class="resident-search-wrap" style="position: relative;"> 
+                            
+                            <input type="text" id="payor_search" class="form-control" placeholder="Search by name..." autocomplete="off" style="width: 100%; padding: 8px;" required> 
+                            
+                            <ul id="payor_dropdown_list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; z-index: 1000; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+
+                            <input type="hidden" name="payor_id" id="payor_id" required>
+                            <input type="hidden" name="payor_type" id="payor_type" value="Resident">
+                        </div> 
+                    </div>
+
+                    <% if (expenseType === 'utilities') { %> 
+
+                        <div class="form-group">
+                            <label for="utility_purpose" class="required-label">Purpose</label>
+                            <input type="text" id="utility_purpose" class=search_input required> 
+                        </div>
+
+                    <% } else if (expenseType === 'salaries') { %>
+
+                        <div class="form-group">
+                            <label class="required-label">Employee</label>
+                            <div class="resident-search-wrap" style="position: relative;"> 
+                                <input type="text" id="employee_search" name="employee_name" class="form-control" placeholder="Search employee by name..." autocomplete="off" required>  
+                                
+                                <ul id="employee_dropdown_list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; z-index: 1000; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+                                
+                                <input type="hidden" name="employee_id" id="employee_id">
+                            </div> 
+                        </div>
+
+                    <% } else if (expenseType === 'maintenance') { %>
+                        
+                        <div class="form-group">
+                            <label for="maintenance_purpose" class="required-label">Purpose</label>
+                            <input type="text" id="maintenance_purpose" class=search_input required> 
+                        </div>
+
+                    <% } else if (expenseType === 'cash') { %>
+                        
+                        <div class="form-group">
+                            <label class="required-label">Purpose</label>
+                            <input type="text" id="petty_cash_purpose" class="search-input" placeholder="Enter purpose... (eg. Office Supplies)">  
+                        </div>
+
+                    <% } else if (expenseType === 'food') { %>
+                        
+                        <div class="form-group">
+                            <label class="required-label">Purpose</label>
+                            <input type="text" id="food_purpose" class="search-input" placeholder="Enter purpose... (eg. Annual HOA meeting catering)">  
+                        </div>
+
+                    <% } else if (expenseType === 'project') { %>
+                        
+                        <div class="form-group">
+                            <label class="required-label">Purpose</label>
+                            <input type="text" id="project_purpose" class="search-input" placeholder="Enter community project name...">  
+                        </div>
+
+                    <% } else { %>
+                        
+                        <div class="form-group">
+                            <label class="required-label">Purpose</label>
+                            <input type="text" id="general_purpose" class="search-input" placeholder="Enter purpose...">  
+                        </div>
+
+                    <% } %> 
+                        
+                    <div class="form-row">
+                        <% if (expenseType === 'other') { %> 
+                            <div class="form-group">
+                                <label>Expected Amount</label>
+                                <input type="number" step="0.01" id="amount_expected" name="amount_expected"
+                                        class="form-control" placeholder="No expected amount"
+                                        style="background:#f5f5f5;">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="required-label">Amount Paid</label>
+                                <input type="number" step="0.01" name="amount_paid" class="form-control" required>
+                            </div>
+                        <% } else { %>
+                            <div class="form-group">
+                                <label>Expected Amount</label>
+                                <input type="number" step="0.01" id="amount_expected" name="amount_expected"
+                                        class="form-control" 
+                                        style="background:#f5f5f5;">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="required-label">Amount Paid</label>
+                                <input type="number" step="0.01" name="amount_paid" class="form-control" required>
+                            </div>
+                        
+                        <% } %>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required-label">Date Paid</label>
+                        <input type="date" name="date_paid" class="form-control" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required-label">Payment Method</label>
+                            <select name="payment_method" class="form-control" required>
+                                <option value="Cash">Cash</option>
+                                <option value="Check">Check</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="GCash">GCash</option>
+                                <option value="Maya">Maya</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="required-label">Receipt Number</label>
+                            <input type="text" name="receipt_number" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Remarks</label>
+                        <textarea name="remarks" class="form-control" rows="3" style="width:100%; resize:vertical;"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" type="submit">Record Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script id="personsData" type="application/json">
+    <%- JSON.stringify(persons || []) %>
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const allPersons = JSON.parse(document.getElementById('personsData').textContent || '[]');
+        
+        const searchInput = document.getElementById('payor_search');
+        const dropdownList = document.getElementById('payor_dropdown_list');
+        const hiddenPayorId = document.getElementById('payor_id');
+
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function () {
+            const query = this.value.trim().toLowerCase();
+            dropdownList.innerHTML = '';
+            
+            hiddenPayorId.value = ''; 
+
+            if (!query) { 
+                dropdownList.style.display = 'none'; 
+                return; 
+            }
+
+            const matches = allPersons.filter(p => p.full_name.toLowerCase().includes(query));
+            
+            if (matches.length === 0) { 
+                dropdownList.innerHTML = '<li style="padding: 8px; color: #888;">No person found</li>';
+                dropdownList.style.display = 'block'; 
+                return; 
+            }
+
+            matches.forEach(p => {
+                const li = document.createElement('li');
+                li.style.cssText = "padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;";
+                li.textContent = p.full_name;
+                
+                li.onmouseover = () => li.style.backgroundColor = '#f5f5f5';
+                li.onmouseout = () => li.style.backgroundColor = 'transparent';
+
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault(); 
+                    
+                    hiddenPayorId.value = p.person_id;
+                    searchInput.value = p.full_name;
+                    dropdownList.style.display = 'none';
+                });
+                
+                dropdownList.appendChild(li);
+            });
+            
+            dropdownList.style.display = 'block';
+        });
+
+        searchInput.addEventListener('blur', () => {
+            setTimeout(() => { dropdownList.style.display = 'none'; }, 150);
+        });
+
+        const empSearchInput = document.getElementById('employee_search');
+        const empDropdownList = document.getElementById('employee_dropdown_list');
+        const hiddenEmpId = document.getElementById('employee_id');
+
+        if (empSearchInput) {
+            empSearchInput.addEventListener('input', function () {
+                const query = this.value.trim().toLowerCase();
+                empDropdownList.innerHTML = '';
+                hiddenEmpId.value = ''; 
+
+                if (!query) { 
+                    empDropdownList.style.display = 'none'; 
+                    return; 
+                }
+
+                // Filter the persons list based on the query
+                const matches = allPersons.filter(p => p.full_name.toLowerCase().includes(query));
+                
+                if (matches.length === 0) { 
+                    empDropdownList.innerHTML = '<li style="padding: 8px; color: #888;">No employee found</li>';
+                    empDropdownList.style.display = 'block'; 
+                    return; 
+                }
+
+                matches.forEach(p => {
+                    const li = document.createElement('li');
+                    li.style.cssText = "padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;";
+                    li.textContent = p.full_name;
+                    
+                    li.onmouseover = () => li.style.backgroundColor = '#f5f5f5';
+                    li.onmouseout = () => li.style.backgroundColor = 'transparent';
+
+                    li.addEventListener('mousedown', function (e) {
+                        e.preventDefault(); 
+                        hiddenEmpId.value = p.person_id;
+                        empSearchInput.value = p.full_name;
+                        empDropdownList.style.display = 'none';
+                    });
+                    
+                    empDropdownList.appendChild(li);
+                });
+                
+                empDropdownList.style.display = 'block';
+            });
+
+            empSearchInput.addEventListener('blur', () => {
+                setTimeout(() => { empDropdownList.style.display = 'none'; }, 150);
+            });
+        }
+    });
+</script>

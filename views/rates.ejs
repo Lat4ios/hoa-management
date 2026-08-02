@@ -1,0 +1,183 @@
+<div class="main-wrapper">
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="sidebar-open"><i class="fas fa-bars"></i></button>
+            <div>
+                <div class="page-title"><%= title %></div>
+                <div class="page-subtitle">Manage rates for association dues, vehicle stickers, and general payments</div>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <div class="user-info">
+                <span class="user-name">Admin User</span>
+                <span class="user-role">HOA Administrator</span>
+            </div>
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <% if (success) { %>
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success %></div>
+        <% } %>
+        <% if (error) { %>
+            <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+        <% } %>
+        
+        <!-- Last Updated Info -->
+        <div class="last-updated">
+            <i class="fas fa-clock"></i> Rates are used for automated sticker and dues calculations
+        </div>
+        
+        <div class="table-container">
+            <table class="data-table" id="ratesTable">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Rate</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (rates && rates.length > 0) { %>
+                        <% rates.forEach(function(rate) { %>
+                            <tr data-rate-id="<%= rate.rate_id %>">
+                                <td><strong><%= rate.rate_category %></strong></td>
+                                <td>₱<%= parseFloat(rate.amount).toFixed(2) %></td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="openEditModal('<%= rate.rate_id %>', '<%= rate.rate_category %>', '<%= rate.amount %>')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="3" class="empty-state">
+                                <i class="fas fa-inbox" style="font-size: 48px; display: block; margin-bottom: 16px; color: #ccc;"></i>
+                                No rates found. Please contact the administrator.
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Rate Modal -->
+<div id="editRateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-edit"></i> Edit Rate</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form method="POST" action="/rates/update" id="editRateForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Rate Type</label>
+                    <input type="text" id="edit_rate_category" class="form-control" disabled />
+                </div>
+                <div class="form-group">
+                    <label for="edit_amount">Price (₱) <span class="required">*</span></label>
+                    <input type="number" name="amount" id="edit_amount" class="form-control" step="0.01" min="0" required />
+                    <div id="amountError" class="error-message" style="display: none; color: #dc3545; font-size: 13px; margin-top: 5px;">
+                        <i class="fas fa-exclamation-circle"></i> Please enter a valid price (must be a positive number).
+                    </div>
+                </div>
+                <input type="hidden" name="rate_id" id="edit_rate_id" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveRateBtn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ── Store rates data ──────────────────────────────────────────────────
+    var ratesData = [];
+    try {
+        ratesData = <%- JSON.stringify(rates) %>;
+    } catch(e) {
+        ratesData = [];
+    }
+
+    // ── Open Edit Modal ──────────────────────────────────────────────────
+    function openEditModal(rateId, rateCategory, amount) {
+        document.getElementById('edit_rate_id').value = rateId;
+        document.getElementById('edit_rate_category').value = rateCategory;
+        document.getElementById('edit_amount').value = amount;
+        document.getElementById('amountError').style.display = 'none';
+        document.getElementById('edit_amount').classList.remove('error');
+        document.getElementById('editRateModal').classList.add('active');
+        document.getElementById('edit_amount').focus();
+    }
+
+    // ── Close Modal ──────────────────────────────────────────────────────
+    function closeModal() {
+        document.getElementById('editRateModal').classList.remove('active');
+        document.getElementById('amountError').style.display = 'none';
+        document.getElementById('edit_amount').classList.remove('error');
+    }
+
+    // ── Validate amount  ────────────────────────────────────
+    document.getElementById('editRateForm').addEventListener('submit', function(e) {
+        var amountInput = document.getElementById('edit_amount');
+        var amount = parseFloat(amountInput.value);
+        var errorEl = document.getElementById('amountError');
+        
+        errorEl.style.display = 'none';
+        amountInput.classList.remove('error');
+        
+        if (amountInput.value.trim() === '' || isNaN(amount) || amount < 0) {
+            e.preventDefault();
+            errorEl.textContent = 'Please enter a valid price (must be a positive number).';
+            errorEl.style.display = 'block';
+            amountInput.classList.add('error');
+            return false;
+        }
+        
+        if (amount === 0) {
+            e.preventDefault();
+            errorEl.textContent = 'Price cannot be zero. Please enter a valid amount.';
+            errorEl.style.display = 'block';
+            amountInput.classList.add('error');
+            return false;
+        }
+        
+        return true;
+    });
+
+    // ── Real-time check on input ────────────────────────────────────
+    document.getElementById('edit_amount').addEventListener('input', function() {
+        var errorEl = document.getElementById('amountError');
+        var amount = parseFloat(this.value);
+        
+        if (this.value.trim() === '' || isNaN(amount) || amount < 0) {
+            errorEl.textContent = 'Please enter a valid price (must be a positive number).';
+            errorEl.style.display = 'block';
+            this.classList.add('error');
+        } else if (amount === 0) {
+            errorEl.textContent = 'Price cannot be zero. Please enter a valid amount.';
+            errorEl.style.display = 'block';
+            this.classList.add('error');
+        } else {
+            errorEl.style.display = 'none';
+            this.classList.remove('error');
+        }
+    });
+
+    // ── Close modal when clicking outside ──────────────────────────────
+    document.querySelectorAll('.modal').forEach(function(modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+    }); 
+</script>
