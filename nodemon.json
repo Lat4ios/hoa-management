@@ -1,0 +1,6 @@
+{
+  "watch": ["app.js", "routes", "controllers", "models", "services", "config", "views", "public"],
+  "ext": "js,ejs,css",
+  "ignore": ["node_modules", ".git", "graphify-out"],
+  "delay": 500
+}
