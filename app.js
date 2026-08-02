@@ -51,9 +51,19 @@ app.use('/rates',               rateRoutes);
 app.use('/reports',             reportRoutes);
 app.use('/generate-reports',    generateReportRoutes);
 
-connectDB();
-createTables();
+// Start server with database connection
+const startServer = async () => {
+    const connected = await connectDB();
+    if (connected) {
+        await createTables();
+    } else {
+        console.log('⚠️ Server starting without database connection');
+        console.log('⚠️ Please check your database settings');
+    }
+    
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`HOA server running -> http://0.0.0.0:${PORT}`);
+    });
+};
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`HOA server running -> http://0.0.0.0:${PORT}`);
-});
+startServer();
