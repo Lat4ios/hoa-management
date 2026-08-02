@@ -2,22 +2,34 @@ const mysql = require('mysql2');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost', 
+    host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD,
+    password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'hoa_db',
-    dateStrings: true
-}).promise()
+    port: process.env.DB_PORT || 3306,
+    dateStrings: true,
+    // Clever Cloud requires SSL
+    ssl: isProduction ? {
+        rejectUnauthorized: false
+    } : undefined,
+    connectTimeout: 30000,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+}).promise();
 
 const connectDB = async() => {
     try{
         const conn = await pool.getConnection();
-        console.log("Successfully connected to MySQL database!");
+        console.log("✅ Successfully connected to MySQL database!");
         conn.release();
+        return true;
     }catch(err) {
-        console.error('Database connection failed!', err);
-        throw err;
+        console.error('❌ Database connection failed!', err.message);
+        console.error('📌 Please check your database credentials');
+        return false;
     }
 };
 
@@ -93,7 +105,6 @@ const createTables = async() => {
                 make VARCHAR(255) NOT NULL,
                 model VARCHAR(255) NOT NULL,
                 sticker_year YEAR,
-
                 status ENUM('Active', 'Inactive') DEFAULT 'Active'
             );
         `;
@@ -375,8 +386,11 @@ const createTables = async() => {
             }
         }
 
+        console.log("✅ All tables created successfully!");
+        return true;
+
     } catch(err) {
-        console.error('Failed to create the database tables', err);
+        console.error('❌ Failed to create database tables:', err.message);
         throw err;
     }
 };
